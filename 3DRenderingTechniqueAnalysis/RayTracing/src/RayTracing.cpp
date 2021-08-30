@@ -1,8 +1,12 @@
 #define OLC_PGE_APPLICATION
 #include <iostream>
 #include "olcPixelGameEngine.h"
+#include "MathUtilities.h"
+#include "WorldDatatypes.h"
 
-// Override base class with your custom functionality
+int g_screenWidth = 500;
+int g_screenHeight = 300;
+
 class Engine : public olc::PixelGameEngine
 {
 public:
@@ -19,18 +23,27 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		for (int x = 0; x < ScreenWidth(); x++)
-			for (int y = 0; y < ScreenHeight(); y++)
-				Draw(x, y, olc::Pixel(rand() % 256, rand() % 256, rand() % 256));
+		RayTracing();
 		return true;
 	}
+
+	void RayTracing()
+	{
+		for (int y = 0; y < g_screenHeight; y++)
+		{
+			for (int x = 0; x < g_screenWidth; x++)
+			{
+
+			}
+		}
+	}
+
 };
 
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(256, 240, 4, 4))
+	if (rayTracer.Construct(g_screenWidth, g_screenHeight, 1, 1))
 		rayTracer.Start();
-    std::cout << "Ray tracer" << std::endl;
 	return 0;
 }
