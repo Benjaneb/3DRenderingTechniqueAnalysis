@@ -31,6 +31,5 @@ int main()
 	Engine rayTracer;
 	if (rayTracer.Construct(256, 240, 4, 4))
 		rayTracer.Start();
-    std::cout << "Ray tracer" << std::endl;
 	return 0;
 }
