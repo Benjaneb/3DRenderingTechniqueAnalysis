@@ -1,10 +1,15 @@
 #pragma once
+#define PI 3.14159265358979
 
+/*
 // Datatypes
+*/
 
 struct Vec3D
 {
-	float x, y, z;
+	float x;
+	float y;
+	float z;
 };
 
 struct Matrix3D
@@ -12,17 +17,16 @@ struct Matrix3D
 	Vec3D i_Hat, j_Hat, k_Hat;
 };
 
+struct Quaternion
+{
+	float a, i, j, k;
+};
+
 /*
 // Methods
 */
 
 // Methods for arithmetic
-
-float Lerp(float startValue, float endValue, float t)
-{
-	//linearly interpolate between two numbers
-	return startValue + (endValue - startValue) * t;
-}
 
 float Min(float a, float b)
 {
@@ -32,6 +36,17 @@ float Min(float a, float b)
 float Max(float a, float b)
 {
 	return (a > b) ? a : b;
+}
+
+float Clamp(float lowerBound, float upperBound, float valueToClamp)
+{
+	return Min(upperBound, Max(lowerBound, valueToClamp));
+}
+
+float Lerp(float startValue, float endValue, float t)
+{
+	//linearly interpolate between two numbers
+	return startValue + (endValue - startValue) * t;
 }
 
 // Methods for vectors
@@ -125,6 +140,8 @@ Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 
 	return result;
 }
+
+//methods for quaternions
 
 // Things to add:
 // 1. matrix-matrix multiplication
