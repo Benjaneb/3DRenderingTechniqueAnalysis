@@ -1,5 +1,6 @@
 #pragma once
-#define PI 3.14159265358979
+#define PI 3.141592
+#define TAU 6.283185
 
 /*
 // Datatypes
@@ -7,9 +8,7 @@
 
 struct Vec3D
 {
-	float x;
-	float y;
-	float z;
+	float x, y, z;
 };
 
 struct Matrix3D
@@ -26,7 +25,7 @@ struct Quaternion
 // Methods
 */
 
-// Methods for arithmetic
+// Methods for numbers
 
 float Min(float a, float b)
 {
@@ -40,12 +39,13 @@ float Max(float a, float b)
 
 float Clamp(float lowerBound, float upperBound, float valueToClamp)
 {
+	// Clamps a value between two other values. e.g: Clamp(5, 10, 7) is 7 because its already between 5 and 10
 	return Min(upperBound, Max(lowerBound, valueToClamp));
 }
 
 float Lerp(float startValue, float endValue, float t)
 {
-	//linearly interpolate between two numbers
+	// Linearly interpolate between two numbers
 	return startValue + (endValue - startValue) * t;
 }
 
@@ -119,6 +119,12 @@ Vec3D CrossProduct(Vec3D a, Vec3D b)
 	return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 }
 
+// Very useful
+Vec3D ConusProduct(Vec3D a, Vec3D b)
+{
+	return { a.x * b.x, a.y * b.y, a.z * b.z };
+}
+
 Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
 {
 	Vec3D result;
@@ -141,7 +147,19 @@ Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 	return result;
 }
 
-//methods for quaternions
+// Methods for quaternions
+
+// Multiplies two quaternions
+Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
+{
+
+}
+
+// Multiplies three quaternions
+Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
+{
+
+}
 
 // Things to add:
 // 1. matrix-matrix multiplication

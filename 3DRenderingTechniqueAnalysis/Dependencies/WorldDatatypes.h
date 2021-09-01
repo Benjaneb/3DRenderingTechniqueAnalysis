@@ -4,16 +4,9 @@
 
 struct Player
 {
-	Vec3D coordinates;
-	//well replace this direction vector by a direction quaternion later
+	Vec3D coords;
 	Quaternion q_direction;
 	float FOV;
-};
-
-struct ColorPoint
-{
-	Vec3D coords;
-	olc::Pixel color;
 };
 
 struct Sphere
@@ -26,7 +19,12 @@ struct Sphere
 
 struct Triangle
 {
-	float ShoveAFuckingSpearIntoMyAss;
 	Vec3D vertices[3];
 	// we'll put this in back later:    olc::Sprite* texture;
+};
+
+struct Light
+{
+	Vec3D coords;
+	olc::Pixel color;
 };

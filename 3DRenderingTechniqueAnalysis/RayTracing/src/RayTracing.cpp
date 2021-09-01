@@ -1,4 +1,6 @@
 #define OLC_PGE_APPLICATION
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 
 #include <iostream>
 #include "olcPixelGameEngine.h"
@@ -7,9 +9,6 @@
 
 
 // Global variables
-int g_int_screenWidth = 500;
-int g_int_screenHeight = 300;
-
 Player g_player = { { 0, 0, 0, }, {0, 0, 1, 0 }, PI / 2.0f };
 
 std::vector<Sphere> g_spheres;
@@ -25,14 +24,14 @@ public:
 	}
 
 public:
-
 	// Initiations of Engine class global variables
 	bool OnUserCreate() override
 	{
 		Sphere sphere1 = { { 1, 0, 5 }, 3, olc::BLUE };
 		g_spheres = { sphere1 };
 
-		g_triangles = { { 10, { { -1, 0, 2 }, { 0, 1, 2 }, { 1, 0.5, 3 } } } };
+		Triangle triangle1 = { { { -2, 0, 2 }, { 0, 1, 2 }, { 1, 0.5, 3 } } };
+		g_triangles = { triangle1 };
 
 		return true;
 	}
@@ -41,41 +40,101 @@ public:
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		Clear(olc::BLACK);
-
+		Controlls(fElapsedTime);
 		RayTracing();
 
 		return true;
 	}
 
+	void Controlls(float fElapsedTime)
+	{
+
+		if (GetKey(olc::Key::W).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::A).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::S).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::D).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::LEFT).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::RIGHT).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::UP).bHeld)
+		{
+
+		}
+
+		if (GetKey(olc::Key::DOWN).bHeld)
+		{
+
+		}
+	}
+
 	void RayTracing()
 	{
-		float zFar = (g_int_screenWidth * 0.5f) / tan(g_player.FOV * 0.5f);
+		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
-		for (int y = -g_int_screenHeight / 2; y < g_int_screenHeight / 2; y++)
+		for (int y = -SCREEN_HEIGHT / 2; y < SCREEN_HEIGHT / 2; y++)
 		{
-			for (int x = -g_int_screenWidth / 2; x < g_int_screenWidth / 2; x++)
+			for (int x = -SCREEN_WIDTH / 2; x < SCREEN_WIDTH / 2; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
+				NormalizeVec3D(&v_direction);
 
+				int screenX = x + SCREEN_WIDTH / 2;
+				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT / 2);
 
+				// Render spheres
+				for (int i = 0; i < g_spheres.size(); i++)
+				{
+					RenderSpheres(g_spheres[i], g_player.coords, v_direction, screenX, screenY);
+				}
 
-				// render the triangles
+				// Render triangles
 				for (int i = 0; i < g_triangles.size(); i++)
 				{
-					RenderTriangles(g_triangles[i], g_player.coordinates, v_direction, x + g_int_screenWidth / 2, (g_int_screenHeight - 1) - (y + g_int_screenHeight / 2));
+					RenderTriangles(g_triangles[i], g_player.coords, v_direction, screenX, screenY);
 				}
 			}
 		}
 	}
 
-	void RenderSpheres(Sphere sphere, Vec3D v_start, Vec3D v_direction)
+	void RenderSpheres(Sphere sphere, Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
 		Vec3D v_intersection = { 0, 0, 0 };
 
-		bool intersectionExists = SphereIntersection(sphere, v_start, v_direction, true, &v_intersection);
+		//bool intersectionExists = SphereIntersection_RT(sphere, v_start, v_direction, true, &v_intersection);
+
+		bool intersectionExists = SphereIntersection_RM(sphere, v_start, v_direction, true, &v_intersection);
+
+		if (intersectionExists)
+		{
+			Draw(screenX, screenY, olc::WHITE);
+		}
 	}
 
-	bool SphereIntersection(Sphere sphere, Vec3D v_start, Vec3D v_direction, bool b_calcIntersection, Vec3D* v_intersection = nullptr)
+	// Ray tracing for spheres
+	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction, bool b_calcIntersection, Vec3D* v_intersection = nullptr)
 	{
 		float k1 = (v_direction.x != 0) ? (v_direction.y / v_direction.x) : FLT_MAX;
 		float k2 = (v_direction.x != 0) ? (v_direction.z / v_direction.x) : FLT_MAX;
@@ -117,13 +176,34 @@ public:
 		return true;
 	}
 
+	// Ray marching for spheres
+	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, bool b_calcIntersection, Vec3D* v_intersection = nullptr)
+	{
+		float touchingDistance = 0.01;
+		float renderDistance = 10;
+		float distanceTravelled = 0;
+
+		while (distanceTravelled < renderDistance)
+		{
+			float distance = Distance3D(v_start, sphere.coords) - sphere.radius;
+			distanceTravelled += distance;
+			AddToVec3D(&v_start, VecScalarMultiplication3D(v_direction, distance));
+
+			if (distance <= touchingDistance)
+			{
+				if (b_calcIntersection) *v_intersection = v_start;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	void RenderTriangles(Triangle triangle, Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
-		NormalizeVec3D(&v_direction);
-
 		Vec3D v_intersection = { 0, 0, 0 };
 
-		bool intersectionExists = TriangleIntersection(triangle, v_start, v_direction, true, &v_intersection);
+		bool intersectionExists = TriangleIntersection_RT(triangle, v_start, v_direction, true, &v_intersection);
 
 		if (intersectionExists)
 		{
@@ -131,7 +211,8 @@ public:
 		}
 	}
 
-	bool TriangleIntersection(Triangle triangle, Vec3D v_start, Vec3D v_direction, 
+	// Ray tracing for triangles
+	bool TriangleIntersection_RT(Triangle triangle, Vec3D v_start, Vec3D v_direction, 
 		bool b_calcIntersection, Vec3D* v_intersection = nullptr)
 	{
 		Vec3D v_triangleEdge1 = SubtractVec3D(triangle.vertices[1], triangle.vertices[0]);
@@ -179,12 +260,17 @@ public:
 		return AddVec3D(VecScalarMultiplication3D(v_direction, f_scalingFactor), v_start);
 	}
 
+	bool TriangleIntersection_RM(Triangle triangle, Vec3D v_start, Vec3D v_direction,
+		bool b_calcIntersection, Vec3D* v_intersection = nullptr)
+	{
+		return true;
+	}
 };
 
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(g_int_screenWidth, g_int_screenHeight, 1, 1))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
 		rayTracer.Start();
 	return 0;
 }
