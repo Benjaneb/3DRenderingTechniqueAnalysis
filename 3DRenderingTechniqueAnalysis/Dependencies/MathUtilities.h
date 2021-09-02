@@ -18,7 +18,8 @@ struct Matrix3D
 
 struct Quaternion
 {
-	float a, i, j, k;
+	float realPart;
+	Vec3D vecPart;
 };
 
 /*
@@ -26,6 +27,11 @@ struct Quaternion
 */
 
 // Methods for numbers
+
+float Abs(float a)
+{
+	return (a >= 0) ? a : -a;
+}
 
 float Min(float a, float b)
 {
@@ -136,6 +142,8 @@ Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
 	return result;
 }
 
+// Methods for matrices (and vectors I guess)
+
 Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 {
 	Vec3D result = { 0, 0, 0 };
@@ -147,18 +155,39 @@ Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 	return result;
 }
 
+Matrix3D MatrixMultiplication3D(Matrix3D m1, Matrix3D m2)
+{
+
+}
+
+Matrix3D InverseMatrix3D(Matrix3D m)
+{
+
+}
+
 // Methods for quaternions
 
 // Multiplies two quaternions
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
 {
+	Quaternion result = { 0, { 0, 0, 0 } };
 
+	result.realPart = q1.realPart * q2.realPart + DotProduct3D(q1.vecPart, q2.vecPart);
+
+	result.vecPart = AddVec3D(result.vecPart, VecScalarMultiplication3D(q1.vecPart, q2.realPart));
+	result.vecPart = AddVec3D(result.vecPart, VecScalarMultiplication3D(q2.vecPart, q1.realPart));
+	
+	result.vecPart = AddVec3D(result.vecPart, CrossProduct(q1.vecPart, q2.vecPart));
+
+	return result;
 }
 
 // Multiplies three quaternions
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
 {
+	Quaternion firstMultiplication = QuaternionMultiplication(q1, q2);
 
+	return QuaternionMultiplication(firstMultiplication, q3);
 }
 
 // Things to add:

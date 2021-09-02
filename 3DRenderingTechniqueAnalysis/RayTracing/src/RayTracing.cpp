@@ -13,6 +13,7 @@ Player g_player = { { 0, 0, 0, }, {0, 0, 1, 0 }, PI / 2.0f };
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
+std::vector<Light> g_lights;
 
 
 class Engine : public olc::PixelGameEngine
@@ -27,11 +28,14 @@ public:
 	// Initiations of Engine class global variables
 	bool OnUserCreate() override
 	{
-		Sphere sphere1 = { { 1, 0, 5 }, 3, olc::BLUE };
+		Sphere sphere1 = { { 1, 0, 8 }, 3, olc::BLUE };
 		g_spheres = { sphere1 };
 
 		Triangle triangle1 = { { { -2, 0, 2 }, { 0, 1, 2 }, { 1, 0.5, 3 } } };
 		g_triangles = { triangle1 };
+
+		Light sun = { { 0, 10, 0 }, olc::Pixel(255, 255, 190) };
+		g_lights = { sun };
 
 		return true;
 	}
@@ -39,7 +43,7 @@ public:
 	// Main loop
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		Clear(olc::BLACK);
+		Clear(olc::GREY);
 		Controlls(fElapsedTime);
 		RayTracing();
 
@@ -111,10 +115,10 @@ public:
 				}
 
 				// Render triangles
-				for (int i = 0; i < g_triangles.size(); i++)
-				{
-					RenderTriangles(g_triangles[i], g_player.coords, v_direction, screenX, screenY);
-				}
+				//for (int i = 0; i < g_triangles.size(); i++)
+				//{
+				//	RenderTriangles(g_triangles[i], g_player.coords, v_direction, screenX, screenY);
+				//}
 			}
 		}
 	}
@@ -127,9 +131,17 @@ public:
 
 		bool intersectionExists = SphereIntersection_RM(sphere, v_start, v_direction, true, &v_intersection);
 
+		// Hard shadows
+		bool shadow;
+
+		for (int i = 0; i < g_lights.size(); i++)
+		{
+			shadow = !SphereIntersection_RM(sphere, v_intersection, ReturnNormalizedVec3D(SubtractVec3D(g_lights[i].coords, v_intersection)), false);
+		}
+
 		if (intersectionExists)
 		{
-			Draw(screenX, screenY, olc::WHITE);
+			Draw(screenX, screenY, olc::Pixel(255 * shadow, 255 * shadow, 255 * shadow));
 		}
 	}
 
@@ -263,6 +275,50 @@ public:
 	bool TriangleIntersection_RM(Triangle triangle, Vec3D v_start, Vec3D v_direction,
 		bool b_calcIntersection, Vec3D* v_intersection = nullptr)
 	{
+		Vec3D v_triangleEdge1 = SubtractVec3D(triangle.vertices[1], triangle.vertices[0]);
+		Vec3D v_triangleEdge2 = SubtractVec3D(triangle.vertices[2], triangle.vertices[0]);
+
+		Vec3D v_triangleNormal = CrossProduct(v_triangleEdge1, v_triangleEdge2);
+
+		NormalizeVec3D(&v_triangleNormal);
+
+		// the triangle is facing away from the ray, so we return no intersection
+		if (DotProduct3D(v_triangleNormal, v_direction) > 0) return false;
+
+		// how much the plane is offseted in the direction of the planeNormal
+		// a negative value means it's offseted in the opposite direction of the planeNormal
+		float f_trianglePlaneOffset = DotProduct3D(v_triangleNormal, triangle.vertices[0]);
+
+		float f_signedDistanceToPlane = f_trianglePlaneOffset - DotProduct3D(v_start, v_triangleNormal);
+
+		// the start vector projected onto the trianglePlane
+		Vec3D vecProjectedOnPlane = AddVec3D(v_start, VecScalarMultiplication3D(v_triangleNormal, f_signedDistanceToPlane));
+
+		Vec3D v_triangleEdge1_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[1], triangle.vertices[0]));
+		NormalizeVec3D(&v_triangleEdge1_normal);
+		Vec3D v_triangleEdge2_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[2], triangle.vertices[1]));
+		NormalizeVec3D(&v_triangleEdge2_normal);
+		Vec3D v_triangleEdge3_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[0], triangle.vertices[2]));
+		NormalizeVec3D(&v_triangleEdge3_normal);
+
+		bool b_projectedVecInsideTriangle = true;
+
+		float signedDistEdge1 = DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1]));
+		float signedDistEdge2 = DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2]));
+		float signedDistEdge3 = DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0]));
+
+		// check if the projected vector is outside of the triangle
+		if (signedDistEdge1 <= 0) b_projectedVecInsideTriangle = false;
+		if (signedDistEdge2 <= 0) b_projectedVecInsideTriangle = false;
+		if (signedDistEdge3 <= 0) b_projectedVecInsideTriangle = false;
+
+		if (b_projectedVecInsideTriangle == false)
+		{
+			float minDistance = signedDistEdge1;
+
+
+		}
+
 		return true;
 	}
 };
