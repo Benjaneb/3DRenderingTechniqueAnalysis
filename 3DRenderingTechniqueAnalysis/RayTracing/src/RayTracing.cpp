@@ -133,10 +133,19 @@ public:
 
 		// Hard shadows
 		bool shadow;
+		
 
 		for (int i = 0; i < g_lights.size(); i++)
 		{
-			shadow = !SphereIntersection_RM(sphere, v_intersection, ReturnNormalizedVec3D(SubtractVec3D(g_lights[i].coords, v_intersection)), false);
+			Vec3D v_offset = SubtractVec3D(v_intersection, sphere.coords);
+			NormalizeVec3D(&v_offset);
+			v_offset = VecScalarMultiplication3D(v_offset, 0.05);
+
+			Vec3D v_offsetIntersection = AddVec3D(v_offset, v_intersection);
+
+			Vec3D v_direction = ReturnNormalizedVec3D(SubtractVec3D(g_lights[i].coords, v_intersection));
+
+			shadow = !SphereIntersection_RM(sphere, v_offsetIntersection, v_direction, false);
 		}
 
 		if (intersectionExists)
@@ -244,14 +253,14 @@ public:
 		Vec3D v_trianglePlaneIntersection = LinePlaneIntersection(v_start, v_direction, v_triangleNormal, f_trianglePlaneOffset);
 
 		// these normals aren't actually normalized, but that doesn't matter for this use-case
-		Vec3D v_triangleEdge1_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[1], triangle.vertices[0]));
-		Vec3D v_triangleEdge2_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[2], triangle.vertices[1]));
-		Vec3D v_triangleEdge3_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[0], triangle.vertices[2]));
+		Vec3D v_triangleEdge1_normal = CrossProduct(SubtractVec3D(triangle.vertices[1], triangle.vertices[0]), v_triangleNormal);
+		Vec3D v_triangleEdge2_normal = CrossProduct(SubtractVec3D(triangle.vertices[2], triangle.vertices[1]), v_triangleNormal);
+		Vec3D v_triangleEdge3_normal = CrossProduct(SubtractVec3D(triangle.vertices[0], triangle.vertices[2]), v_triangleNormal);
 
 		// check if the intersection is outside of the triangle
-		if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[1])) <= 0) return false;
-		if (DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[2])) <= 0) return false;
-		if (DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0])) <= 0) return false;
+		if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[1])) > 0) return false;
+		if (DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[2])) > 0) return false;
+		if (DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0])) > 0) return false;
 
 		//if we don't care where the intersection is we just return true before setting v_intersection
 		if (b_calcIntersection == false) return true;
@@ -294,11 +303,11 @@ public:
 		// the start vector projected onto the trianglePlane
 		Vec3D vecProjectedOnPlane = AddVec3D(v_start, VecScalarMultiplication3D(v_triangleNormal, f_signedDistanceToPlane));
 
-		Vec3D v_triangleEdge1_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[1], triangle.vertices[0]));
+		Vec3D v_triangleEdge1_normal = CrossProduct(SubtractVec3D(triangle.vertices[1], triangle.vertices[0]), v_triangleNormal);
 		NormalizeVec3D(&v_triangleEdge1_normal);
-		Vec3D v_triangleEdge2_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[2], triangle.vertices[1]));
+		Vec3D v_triangleEdge2_normal = CrossProduct(SubtractVec3D(triangle.vertices[2], triangle.vertices[1]), v_triangleNormal);
 		NormalizeVec3D(&v_triangleEdge2_normal);
-		Vec3D v_triangleEdge3_normal = CrossProduct(v_triangleNormal, SubtractVec3D(triangle.vertices[0], triangle.vertices[2]));
+		Vec3D v_triangleEdge3_normal = CrossProduct(SubtractVec3D(triangle.vertices[0], triangle.vertices[2]), v_triangleNormal);
 		NormalizeVec3D(&v_triangleEdge3_normal);
 
 		bool b_projectedVecInsideTriangle = true;
@@ -308,16 +317,16 @@ public:
 		float signedDistEdge3 = DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0]));
 
 		// check if the projected vector is outside of the triangle
-		if (signedDistEdge1 <= 0) b_projectedVecInsideTriangle = false;
-		if (signedDistEdge2 <= 0) b_projectedVecInsideTriangle = false;
-		if (signedDistEdge3 <= 0) b_projectedVecInsideTriangle = false;
+		if (signedDistEdge1 > 0) b_projectedVecInsideTriangle = false;
+		if (signedDistEdge2 > 0) b_projectedVecInsideTriangle = false;
+		if (signedDistEdge3 > 0) b_projectedVecInsideTriangle = false;
 
-		if (b_projectedVecInsideTriangle == false)
-		{
-			float minDistance = signedDistEdge1;
+		//if (b_projectedVecInsideTriangle == false)
+		//{
+		//	if()
 
 
-		}
+		//}
 
 		return true;
 	}
