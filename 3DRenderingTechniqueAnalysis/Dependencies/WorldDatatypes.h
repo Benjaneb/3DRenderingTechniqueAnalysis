@@ -1,6 +1,6 @@
 #pragma once
 #include "olcPixelGameEngine.h"
-#include "MathUtilities.h"
+#include "MathUtilities.cuh"
 
 struct Player
 {

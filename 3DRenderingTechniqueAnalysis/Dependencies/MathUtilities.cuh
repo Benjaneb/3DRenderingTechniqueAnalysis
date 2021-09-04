@@ -43,7 +43,7 @@ float Max(float a, float b)
 	return (a > b) ? a : b;
 }
 
-float Clamp(float lowerBound, float upperBound, float valueToClamp)
+float Clamp(float valueToClamp, float lowerBound, float upperBound)
 {
 	// Clamps a value between two other values. e.g: Clamp(5, 10, 7) is 7 because its already between 5 and 10
 	return Min(upperBound, Max(lowerBound, valueToClamp));
@@ -160,9 +160,39 @@ Matrix3D MatrixMultiplication3D(Matrix3D m1, Matrix3D m2)
 
 }
 
+// sigh
 Matrix3D InverseMatrix3D(Matrix3D m)
 {
+	float reciprocalDetM = 1 / DotProduct3D(m.i_Hat, CrossProduct(m.j_Hat, m.k_Hat));
 
+	Vec3D new_i_Hat;
+	Vec3D new_j_Hat;
+	Vec3D new_k_Hat;
+
+	new_i_Hat.x = m.j_Hat.y * m.k_Hat.z - m.k_Hat.y * m.j_Hat.z;
+	new_i_Hat.y = -(m.i_Hat.y * m.k_Hat.z - m.k_Hat.y * m.i_Hat.z);
+	new_i_Hat.z = m.i_Hat.y * m.j_Hat.z - m.j_Hat.y * m.i_Hat.z;
+
+	new_j_Hat.x = -(m.j_Hat.x * m.k_Hat.z - m.k_Hat.x * m.j_Hat.z);
+	new_j_Hat.y = m.i_Hat.x * m.k_Hat.z - m.k_Hat.x * m.i_Hat.z;
+	new_j_Hat.z = -(m.i_Hat.x * m.j_Hat.z - m.j_Hat.x * m.i_Hat.z);
+
+	new_k_Hat.x = m.j_Hat.x * m.k_Hat.y - m.k_Hat.x * m.j_Hat.y;
+	new_k_Hat.y = -(m.i_Hat.x * m.k_Hat.y - m.k_Hat.x * m.i_Hat.y);
+	new_k_Hat.z = m.i_Hat.x * m.j_Hat.y - m.j_Hat.x * m.i_Hat.y;
+
+	new_i_Hat = VecScalarMultiplication3D(new_i_Hat, reciprocalDetM);
+	new_j_Hat = VecScalarMultiplication3D(new_j_Hat, reciprocalDetM);
+	new_k_Hat = VecScalarMultiplication3D(new_k_Hat, reciprocalDetM);
+
+	Matrix3D invertedMatrix =
+	{
+		new_i_Hat,
+		new_j_Hat,
+		new_k_Hat
+	};
+
+	return invertedMatrix;
 }
 
 // Methods for quaternions

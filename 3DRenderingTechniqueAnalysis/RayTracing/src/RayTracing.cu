@@ -3,13 +3,15 @@
 #define SCREEN_HEIGHT 720
 
 #include <iostream>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include "olcPixelGameEngine.h"
-#include "MathUtilities.h"
+#include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
 
 
 // Global variables
-Player g_player = { { 0, 0, 0, }, {0, 0, 1, 0 }, PI / 2.0f };
+Player g_player = { { 0, 1, 0, }, {0, 0, 1, 0 }, PI / 2.0f };
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
@@ -28,13 +30,13 @@ public:
 	// Initiations of Engine class global variables
 	bool OnUserCreate() override
 	{
-		Sphere sphere1 = { { 1, 0, 8 }, 3, olc::BLUE };
+		Sphere sphere1 = { { 1, 1, 10 }, 4, olc::BLUE };
 		g_spheres = { sphere1 };
 
-		Triangle triangle1 = { { { -2, 0, 2 }, { 0, 1, 2 }, { 1, 0.5, 3 } } };
+		Triangle triangle1 = { { { -2, 1, 3 }, { 0, 2, 3 }, { 1, 1.5, 3 } } };
 		g_triangles = { triangle1 };
 
-		Light sun = { { 0, 10, 0 }, olc::Pixel(255, 255, 190) };
+		Light sun = { { 0, 13, 0 }, olc::Pixel(255, 255, 190) };
 		g_lights = { sun };
 
 		return true;
@@ -43,7 +45,7 @@ public:
 	// Main loop
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		Clear(olc::GREY);
+		Clear(olc::Pixel(158, 250, 255));
 		Controlls(fElapsedTime);
 		RayTracing();
 
@@ -52,6 +54,7 @@ public:
 
 	void Controlls(float fElapsedTime)
 	{
+		int speed = 5;
 
 		if (GetKey(olc::Key::W).bHeld)
 		{
@@ -92,6 +95,16 @@ public:
 		{
 
 		}
+
+		if (GetKey(olc::Key::SPACE).bHeld)
+		{
+			g_player.coords.y += speed * fElapsedTime;
+		}
+
+		if (GetKey(olc::Key::SHIFT).bHeld)
+		{
+			g_player.coords.y -= speed * fElapsedTime;
+		}
 	}
 
 	void RayTracing()
@@ -108,12 +121,15 @@ public:
 				int screenX = x + SCREEN_WIDTH / 2;
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT / 2);
 
+				RenderGround(g_player.coords, v_direction, screenX, screenY);
+
 				// Render spheres
 				for (int i = 0; i < g_spheres.size(); i++)
 				{
 					RenderSpheres(g_spheres[i], g_player.coords, v_direction, screenX, screenY);
 				}
 
+				//test<<<1, 1>>>();
 				// Render triangles
 				//for (int i = 0; i < g_triangles.size(); i++)
 				//{
@@ -123,18 +139,37 @@ public:
 		}
 	}
 
+	__global__ void test()
+	{
+
+	}
+
+	void RenderGround(Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
+	{
+		// Ground properties
+		float y = 0;
+		olc::Pixel color = olc::Pixel(216, 192, 121);
+		float renderDistance = 100;
+
+		// Calculation
+		Vec3D extendedRay = AddVec3D(v_start, VecScalarMultiplication3D(v_direction, renderDistance));
+
+		if (extendedRay.y < y && g_player.coords.y > y || extendedRay.y > y && g_player.coords.y < y)
+			Draw(screenX, screenY, color);
+	}
+
 	void RenderSpheres(Sphere sphere, Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
 		Vec3D v_intersection = { 0, 0, 0 };
+		float minDistance_RM = 1;
 
 		//bool intersectionExists = SphereIntersection_RT(sphere, v_start, v_direction, true, &v_intersection);
 
-		bool intersectionExists = SphereIntersection_RM(sphere, v_start, v_direction, true, &v_intersection);
+		bool intersectionExists = SphereIntersection_RM(sphere, v_start, v_direction, &v_intersection, &minDistance_RM);
 
 		// Hard shadows
 		bool shadow;
 		
-
 		for (int i = 0; i < g_lights.size(); i++)
 		{
 			Vec3D v_offset = SubtractVec3D(v_intersection, sphere.coords);
@@ -145,12 +180,18 @@ public:
 
 			Vec3D v_direction = ReturnNormalizedVec3D(SubtractVec3D(g_lights[i].coords, v_intersection));
 
-			shadow = !SphereIntersection_RM(sphere, v_offsetIntersection, v_direction, false);
+			shadow = !SphereIntersection_RM(sphere, v_offsetIntersection, v_direction);
 		}
 
+		// Draw
 		if (intersectionExists)
 		{
-			Draw(screenX, screenY, olc::Pixel(255 * shadow, 255 * shadow, 255 * shadow));
+			minDistance_RM /= 5;
+			byte red = Min(255, sphere.color.r * shadow / minDistance_RM);
+			byte green = Min(255, sphere.color.g * shadow / minDistance_RM);
+			byte blue = Min(255, sphere.color.b * shadow / minDistance_RM);
+
+			Draw(screenX, screenY, olc::Pixel(red, green, blue));
 		}
 	}
 
@@ -198,24 +239,27 @@ public:
 	}
 
 	// Ray marching for spheres
-	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, bool b_calcIntersection, Vec3D* v_intersection = nullptr)
+	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* minDistance = nullptr)
 	{
 		float touchingDistance = 0.01;
 		float renderDistance = 10;
 		float distanceTravelled = 0;
+		float currentMin = INFINITY;
 
 		while (distanceTravelled < renderDistance)
 		{
 			float distance = Distance3D(v_start, sphere.coords) - sphere.radius;
+			currentMin = Min(currentMin, distance);
 			distanceTravelled += distance;
 			AddToVec3D(&v_start, VecScalarMultiplication3D(v_direction, distance));
 
 			if (distance <= touchingDistance)
 			{
-				if (b_calcIntersection) *v_intersection = v_start;
+				if (v_intersection != nullptr) *v_intersection = v_start;
 				return true;
 			}
 		}
+		if (minDistance != nullptr) *minDistance = currentMin;
 
 		return false;
 	}
@@ -224,7 +268,7 @@ public:
 	{
 		Vec3D v_intersection = { 0, 0, 0 };
 
-		bool intersectionExists = TriangleIntersection_RT(triangle, v_start, v_direction, true, &v_intersection);
+		bool intersectionExists = TriangleIntersection_RM(triangle, v_start, v_direction, false);
 
 		if (intersectionExists)
 		{
@@ -288,7 +332,6 @@ public:
 		Vec3D v_triangleEdge2 = SubtractVec3D(triangle.vertices[2], triangle.vertices[0]);
 
 		Vec3D v_triangleNormal = CrossProduct(v_triangleEdge1, v_triangleEdge2);
-
 		NormalizeVec3D(&v_triangleNormal);
 
 		// the triangle is facing away from the ray, so we return no intersection
@@ -298,37 +341,50 @@ public:
 		// a negative value means it's offseted in the opposite direction of the planeNormal
 		float f_trianglePlaneOffset = DotProduct3D(v_triangleNormal, triangle.vertices[0]);
 
-		float f_signedDistanceToPlane = f_trianglePlaneOffset - DotProduct3D(v_start, v_triangleNormal);
-
-		// the start vector projected onto the trianglePlane
-		Vec3D vecProjectedOnPlane = AddVec3D(v_start, VecScalarMultiplication3D(v_triangleNormal, f_signedDistanceToPlane));
-
 		Vec3D v_triangleEdge1_normal = CrossProduct(SubtractVec3D(triangle.vertices[1], triangle.vertices[0]), v_triangleNormal);
-		NormalizeVec3D(&v_triangleEdge1_normal);
 		Vec3D v_triangleEdge2_normal = CrossProduct(SubtractVec3D(triangle.vertices[2], triangle.vertices[1]), v_triangleNormal);
-		NormalizeVec3D(&v_triangleEdge2_normal);
 		Vec3D v_triangleEdge3_normal = CrossProduct(SubtractVec3D(triangle.vertices[0], triangle.vertices[2]), v_triangleNormal);
-		NormalizeVec3D(&v_triangleEdge3_normal);
 
-		bool b_projectedVecInsideTriangle = true;
+		float f_maxDistance = 10;
+		float f_totalDistanceTravelled = 0;
 
-		float signedDistEdge1 = DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1]));
-		float signedDistEdge2 = DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2]));
-		float signedDistEdge3 = DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0]));
+		while (f_totalDistanceTravelled < f_maxDistance)
+		{
+			float f_signedDistanceToPlane = f_trianglePlaneOffset - DotProduct3D(v_start, v_triangleNormal);
 
-		// check if the projected vector is outside of the triangle
-		if (signedDistEdge1 > 0) b_projectedVecInsideTriangle = false;
-		if (signedDistEdge2 > 0) b_projectedVecInsideTriangle = false;
-		if (signedDistEdge3 > 0) b_projectedVecInsideTriangle = false;
+			// the start vector projected onto the trianglePlane
+			Vec3D vecProjectedOnPlane = AddVec3D(v_start, VecScalarMultiplication3D(v_triangleNormal, f_signedDistanceToPlane));
 
-		//if (b_projectedVecInsideTriangle == false)
-		//{
-		//	if()
+			float f_distanceToTriangle;
 
+			if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1])) > 1 &&
+				DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2])) > 1 &&
+				DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0])) > 1)
+			{
+				f_distanceToTriangle = abs(f_signedDistanceToPlane);
+			}
+			else
+			{
+				float DistanceToEdge1 = distanceToEdge(v_start, triangle.vertices[1], triangle.vertices[0], v_triangleEdge1_normal);
+			}
+			
+			
+			f_totalDistanceTravelled += f_distanceToTriangle;
+		}
 
-		//}
+		return false;
+	}
 
-		return true;
+	float distanceToEdge(Vec3D point, Vec3D vertex1, Vec3D vertex2, Vec3D edgeNormal)
+	{
+		float edgeLength = distance3D(vertex1, vertex2);
+		Vec3D v_edgeDirection = ReturnNormalizedVec3D(SubtractVec3D(vertex2, vertex1));
+
+		Vec3D v_pointProjectedOnEdge = SubtractVec3D(point, DotProduct3D(SubtractVec3D(point, vertex1), edgeNormal));
+
+		v_pointProjectedOnEdge
+
+		
 	}
 };
 
