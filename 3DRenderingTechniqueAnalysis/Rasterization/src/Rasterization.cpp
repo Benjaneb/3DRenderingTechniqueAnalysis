@@ -1,8 +1,7 @@
 #define OLC_PGE_APPLICATION
 #include <iostream>
 #include "olcPixelGameEngine.h"
-#include "MathUtilities.h"
-#include "WorldDatatypes.h"
+#include "MathUtilities.cuh"
 
 class Engine : public olc::PixelGameEngine
 {

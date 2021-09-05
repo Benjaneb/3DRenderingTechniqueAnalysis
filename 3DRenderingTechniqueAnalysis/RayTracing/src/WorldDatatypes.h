@@ -14,13 +14,15 @@ struct Sphere
 	Vec3D coords;
 	float radius;
 	olc::Pixel color;
+	float luminance = 0;
 	// we'll put this in back later:    olc::Sprite* texture;
 };
 
 struct Triangle
 {
 	Vec3D vertices[3];
-	// we'll put this in back later:    olc::Sprite* texture;
+	Vec2D textureVertices[3];
+	float luminance = 0;
 };
 
 struct Light

@@ -6,6 +6,11 @@
 // Datatypes
 */
 
+struct Vec2D
+{
+	float x, y;
+};
+
 struct Vec3D
 {
 	float x, y, z;
@@ -43,9 +48,15 @@ float Max(float a, float b)
 	return (a > b) ? a : b;
 }
 
+void Clamp(float* valueToClamp, float lowerBound, float upperBound)
+{
+	// Clamps a value between two other values. e.g: Clamp(7, 5, 10) is 7 because its already between 5 and 10
+	*valueToClamp = Min(upperBound, Max(lowerBound, *valueToClamp));
+}
+
 float Clamp(float valueToClamp, float lowerBound, float upperBound)
 {
-	// Clamps a value between two other values. e.g: Clamp(5, 10, 7) is 7 because its already between 5 and 10
+	// Clamps a value between two other values. e.g: Clamp(7, 5, 10) is 7 because its already between 5 and 10
 	return Min(upperBound, Max(lowerBound, valueToClamp));
 }
 
@@ -55,7 +66,42 @@ float Lerp(float startValue, float endValue, float t)
 	return startValue + (endValue - startValue) * t;
 }
 
-// Methods for vectors
+// Methods for 2D vectors
+
+void AddToVec2D(Vec2D* v1, Vec2D v2)
+{
+	v1->x += v2.x;
+	v1->y += v2.y;
+}
+
+Vec2D AddVec2D(Vec2D v1, Vec2D v2)
+{
+	return { v1.x + v2.x, v1.y + v2.y };
+}
+
+void SubtractFromVec2D(Vec2D* v1, Vec2D v2)
+{
+	v1->x -= v2.x;
+	v1->y -= v2.y;
+}
+
+Vec2D SubtractVec2D(Vec2D v1, Vec2D v2)
+{
+	return { v1.x - v2.x, v1.y - v2.y };
+}
+
+void ScaleVec2D(Vec2D* v, float scalar)
+{
+	v->x *= scalar;
+	v->y *= scalar;
+}
+
+Vec2D VecScalarMultiplication2D(Vec2D v, float scalar)
+{
+	return { v.x * scalar, v.y * scalar };
+}
+
+// Methods for 3D vectors
 
 void AddToVec3D(Vec3D* v1, Vec3D v2)
 {
@@ -69,9 +115,23 @@ Vec3D AddVec3D(Vec3D v1, Vec3D v2)
 	return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 }
 
+void SubtractFromVec3D(Vec3D* v1, Vec3D v2)
+{
+	v1->x -= v2.x;
+	v1->y -= v2.y;
+	v1->z -= v2.z;
+}
+
 Vec3D SubtractVec3D(Vec3D v1, Vec3D v2)
 {
 	return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
+}
+
+void ScaleVec3D(Vec3D* v, float scalar)
+{
+	v->x *= scalar;
+	v->y *= scalar;
+	v->z *= scalar;
 }
 
 Vec3D VecScalarMultiplication3D(Vec3D v, float scalar)
@@ -157,10 +217,16 @@ Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 
 Matrix3D MatrixMultiplication3D(Matrix3D m1, Matrix3D m2)
 {
-
+	Matrix3D newMatrix =
+	{
+		VecMatrixMultiplication3D(m1.i_Hat, m2),
+		VecMatrixMultiplication3D(m1.j_Hat, m2),
+		VecMatrixMultiplication3D(m1.k_Hat, m2)
+	};
+	
+	return newMatrix;
 }
 
-// sigh
 Matrix3D InverseMatrix3D(Matrix3D m)
 {
 	float reciprocalDetM = 1 / DotProduct3D(m.i_Hat, CrossProduct(m.j_Hat, m.k_Hat));
@@ -219,7 +285,3 @@ Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
 
 	return QuaternionMultiplication(firstMultiplication, q3);
 }
-
-// Things to add:
-// 1. matrix-matrix multiplication
-// 2. matrix inversion function (returns the inverse of a matrix)
