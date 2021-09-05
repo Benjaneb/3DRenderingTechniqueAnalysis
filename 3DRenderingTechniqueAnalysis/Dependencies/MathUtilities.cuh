@@ -101,6 +101,39 @@ Vec2D VecScalarMultiplication2D(Vec2D v, float scalar)
 	return { v.x * scalar, v.y * scalar };
 }
 
+float VecLength2D(Vec2D v)
+{
+	return sqrt(v.x * v.x + v.y * v.y);
+}
+
+float Distance2D(Vec2D v1, Vec2D v2)
+{
+	return sqrt((v2.x - v1.x) * (v2.x - v1.x) + (v2.y - v1.y) * (v2.y - v1.y));
+}
+
+void NormalizeVec2D(Vec2D* v)
+{
+	float inverseVectorLength = 1 / sqrt(v->x * v->x + v->y * v->y);
+
+	v->x *= inverseVectorLength;
+	v->y *= inverseVectorLength;
+}
+
+float DotProduct2D(Vec2D v1, Vec2D v2)
+{
+	return v1.x * v2.x + v1.y * v2.y;
+}
+
+Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, float t)
+{
+	Vec2D result;
+
+	result.x = startVector.x + (endVector.x - startVector.x) * t;
+	result.y = startVector.y + (endVector.y - startVector.y) * t;
+
+	return result;
+}
+
 // Methods for 3D vectors
 
 void AddToVec3D(Vec3D* v1, Vec3D v2)

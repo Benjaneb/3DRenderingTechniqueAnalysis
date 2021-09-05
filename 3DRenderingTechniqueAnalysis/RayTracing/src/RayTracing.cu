@@ -1,6 +1,8 @@
 #define OLC_PGE_APPLICATION
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 500
+#define RENDER_DISTANCE 10
+#define TOUCHING_DISTANCE 0.01f
 
 #include <iostream>
 #include <cuda_runtime.h>
@@ -13,9 +15,9 @@
 
 Player g_player = { { 0, 1, 0 }, { 0, { 0, 0, 1 } }, PI * 0.5f };
 
-//one dimensional instead of 2 dimensional because maybe faster
-olc::Pixel pixels[SCREEN_HEIGHT * SCREEN_WIDTH];
-float depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
+//1 dimensional instead of 2 dimensional because maybe faster
+olc::Pixel g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH];
+float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
@@ -34,12 +36,15 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		//textureAtlas = new olc::Sprite("textureAtlas.png");
+		textureAtlas = new olc::Sprite("textureAtlas.png");
 
 		Sphere sphere1 = { { 1, 1, 10 }, 4, olc::BLUE };
 		g_spheres = { sphere1 };
 
-		Triangle triangle1 = { { { -2, 1, 3 }, { 0, 2, 3 }, { 1, 1.5, 3 } }, { { 0, 0 }, { 1, 1 }, { 0, 1 } } };
+		Triangle triangle1 = {
+			{ { -2, 1, 3 }, { 0, 2, 3 }, { 1, 1.5, 3 } },
+			{ { 0, 0 }, { 1, 1 }, { 0, 1 } }
+		};
 		g_triangles = { triangle1 };
 
 		Light sun = { { 0, 13, 0 }, { 255, 255, 190 } };
@@ -50,16 +55,69 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		//Controlls(fElapsedTime);
+		Controlls(fElapsedTime);
 		RayTracing();
 
 		return true;
 	}
 
+	void Controlls(float fElapsedTime)
+	{
+		int speed = 3;
+		
+		if (GetKey(olc::Key::W).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::A).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::S).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::D).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::LEFT).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::RIGHT).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::UP).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::DOWN).bHeld)
+		{
+			
+		}
+		
+		if (GetKey(olc::Key::SPACE).bHeld)
+		{
+			g_player.coords.y += speed * fElapsedTime;
+		}
+		
+		if (GetKey(olc::Key::SHIFT).bHeld)
+		{
+			g_player.coords.y -= speed * fElapsedTime;
+		}
+	}
+
 	void RayTracing()
 	{
-		std::cout << "egg" << std::endl;
-
 		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
 		for (int y = -SCREEN_HEIGHT * 0.5f; y < SCREEN_HEIGHT * 0.5f; y++)
@@ -73,54 +131,136 @@ public:
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT * 0.5f);
 
 				//clearing the buffers
-				pixels[SCREEN_WIDTH * screenY + screenX] = { 0, 0, 0 };
-				depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
+				g_pixels[SCREEN_WIDTH * screenY + screenX] = { 0, 0, 0 };
+				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
-				//RenderGround(g_player.coords, v_direction, screenX, screenY);
+				RenderGround(g_player.coords, v_direction, screenX, screenY);
 
 				//RenderSpheres(g_player.coords, v_direction, screenX, screenY);
 
-				RenderTriangles(g_player.coords, v_direction, screenX, screenY);
+				//RenderTriangles(g_player.coords, v_direction, screenX, screenY);
 
-				Draw(x, y, pixels[SCREEN_WIDTH * screenY + screenX]);
+				Draw(screenX, screenY, g_pixels[SCREEN_WIDTH * screenY + screenX]);
 			}
 		}
-
-		//std::cout << "fuck" << std::endl;
-
-		//DrawSprite(0, 0, textureAtlas);
 	}
 
-	olc::Pixel RenderGround(Vec3D v_start, Vec3D v_direction)
+	void RenderGround(Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
-		// Ground properties
-		float y = 0;
-		olc::Pixel color = olc::Pixel(216, 192, 121);
-		float renderDistance = 100;
+		olc::Pixel pixelColor = { 0, 0, 0 };
 
-		// Calculation
-		Vec3D extendedRay = AddVec3D(v_start, VecScalarMultiplication3D(v_direction, renderDistance));
+		bool intersectionExists;
+		Vec3D v_intersection = { 0, 0, 0 };
+		float depth = 0;
 
-		if (extendedRay.y < y && g_player.coords.y > y || extendedRay.y > y && g_player.coords.y < y)
-			return color;
+		float groundLevel = -1;
+		VertexPair2D textureVertexPair = { { { 0, 0 }, { 1, 1 } } };
+		float textureScalar = 10;
+
+		intersectionExists = GroundIntersectionRT(groundLevel, textureVertexPair, textureScalar, v_start, v_direction, &v_intersection, &depth, &pixelColor);
+
+		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
+		{
+			g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
+			g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
+		}
 	}
 
-	olc::Pixel RenderSpheres(Vec3D v_start, Vec3D v_direction)
+	bool GroundIntersectionRT(float groundLevel, VertexPair2D textureVertexPair, float textureScalar, Vec3D v_start, Vec3D v_direction, 
+		Vec3D* v_intersection = nullptr, float* depth = nullptr, olc::Pixel* pixelColor = nullptr)
+	{
+		if (v_direction.y >= 0)
+		{
+			return false;
+		}
+
+		if (v_intersection == nullptr)
+		{
+			return true;
+		}
+
+		ScaleVec3D(&v_direction, (groundLevel - v_start.y) / v_direction.y);
+
+		Vec3D rayGroundIntersection = AddVec3D(v_start, v_direction);
+
+		*v_intersection = rayGroundIntersection;
+		*depth = rayGroundIntersection.z;
+
+		if (pixelColor == nullptr)
+		{
+			return true;
+		}
+
+		float signedTextureWidth = (textureVertexPair.vertices[1].x - textureVertexPair.vertices[0].x) * textureScalar;
+		float signedTextureHeight = (textureVertexPair.vertices[1].y - textureVertexPair.vertices[0].y) * textureScalar;
+
+		float textureX = fmod(abs(rayGroundIntersection.x), signedTextureWidth) / abs(signedTextureWidth);
+		float textureY = fmod(abs(rayGroundIntersection.z), signedTextureHeight) / abs(signedTextureHeight);
+
+		*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
+
+		return true;
+	}
+
+	bool GroundIntersectionRM(float groundLevel, VertexPair2D textureVertexPair, float textureScalar, Vec3D v_start, Vec3D v_direction, 
+		Vec3D* v_intersection = nullptr, float* depth = nullptr, olc::Pixel* pixelColor = nullptr)
+	{
+		float totalDistanceTravelled = 0;
+
+		while (totalDistanceTravelled < RENDER_DISTANCE)
+		{
+			float distanceToGround = abs(v_start.y - groundLevel);
+
+			AddToVec3D(&v_start, VecScalarMultiplication3D(v_direction, distanceToGround));
+
+			if (distanceToGround < TOUCHING_DISTANCE)
+			{
+				if (v_intersection == nullptr)
+				{
+					return true;
+				}
+
+				*v_intersection = v_start;
+				*depth = v_start.z;
+
+				if (pixelColor == nullptr)
+				{
+					return true;
+				}
+
+				float signedTextureWidth = (textureVertexPair.vertices[1].x - textureVertexPair.vertices[0].x) * textureScalar;
+				float signedTextureHeight = (textureVertexPair.vertices[1].y - textureVertexPair.vertices[0].y) * textureScalar;
+
+				float textureX = fmod(abs(v_start.x), signedTextureWidth) / abs(signedTextureWidth);
+				float textureY = fmod(abs(v_start.z), signedTextureHeight) / abs(signedTextureHeight);
+
+				*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
+
+				return true;
+			}
+
+			totalDistanceTravelled += distanceToGround;
+		}
+
+		return false;
+	}
+
+	void RenderSpheres(Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
 		Vec3D v_intersection = { 0, 0, 0 };
 		float minDistance_RM = 0;
 		bool shadow;
-		olc::Pixel color;
+		olc::Pixel pixelColor;
+		float depth = 0;
 
 		for (int i = 0; i < g_spheres.size(); i++)
 		{
-
 			//bool intersectionExists = SphereIntersection_RT(g_spheres[i], v_start, v_direction, &v_intersection);
 
-			bool intersectionExists = SphereIntersection_RM(g_spheres[i], v_start, v_direction, &v_intersection, &minDistance_RM);
+			bool intersectionExists = SphereIntersection_RM(g_spheres[i], v_start, v_direction, &v_intersection, &minDistance_RM, &depth);
 
 			// Hard shadows
-			if (g_spheres[i].luminance > 0)
+			if (g_spheres[i].luminance <= 0)
 			{
 				for (int i = 0; i < g_lights.size(); i++)
 				{
@@ -134,15 +274,25 @@ public:
 
 					shadow = !SphereIntersection_RM(g_spheres[i], v_offsetIntersection, v_direction);
 				}
+			}
+
+			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
+			{
 				// Color calculation
 				float glowBrightness = 1 / (minDistance_RM + 1);
-				color.r = g_spheres[i].color.r * shadow * glowBrightness;
-				color.g = g_spheres[i].color.g * shadow * glowBrightness;
-				color.b = g_spheres[i].color.b * shadow * glowBrightness;
+				pixelColor.r = g_spheres[i].color.r * shadow * glowBrightness;
+				pixelColor.g = g_spheres[i].color.g * shadow * glowBrightness;
+				pixelColor.b = g_spheres[i].color.b * shadow * glowBrightness;
+
+				if (g_spheres[i].luminance > 0)
+				{
+					pixelColor.r = g_pixels[SCREEN_WIDTH * screenY + screenX].r;
+				}
+
+				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
+				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
 			}
 		}
-
-		return color;
 	}
 
 	// Ray tracing for spheres
@@ -189,21 +339,19 @@ public:
 	}
 
 	// Ray marching for spheres
-	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* minDistance = nullptr)
+	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* minDistance = nullptr, float* depth = nullptr)
 	{
-		float touchingDistance = 0.01;
-		float renderDistance = 10;
 		float distanceTravelled = 0;
 		float currentMin = INFINITY;
 
-		while (distanceTravelled < renderDistance)
+		while (distanceTravelled < RENDER_DISTANCE)
 		{
 			float distance = Distance3D(v_start, sphere.coords) - sphere.radius;
 			currentMin = Min(currentMin, distance); // For glow
 			distanceTravelled += distance;
 			AddToVec3D(&v_start, VecScalarMultiplication3D(v_direction, distance));
 
-			if (distance <= touchingDistance)
+			if (distance < TOUCHING_DISTANCE)
 			{
 				if (v_intersection != nullptr) *v_intersection = v_start;
 				return true;
@@ -228,9 +376,10 @@ public:
 			intersectionExists = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, &v_intersection, &depth, &pixelColor);
 		}
 
-		if (intersectionExists && depth < depthBuffer[SCREEN_WIDTH * screenY + screenX])
+		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 		{
-			pixels[SCREEN_WIDTH * screenY + screenX] = { 255, 255, 255 };// pixelColor;
+			g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
+			g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
 		}
 	}
 
@@ -259,9 +408,12 @@ public:
 		Vec3D v_triangleEdge3_normal = CrossProduct(SubtractVec3D(triangle.vertices[0], triangle.vertices[2]), v_triangleNormal);
 
 		// check if the intersection is outside of the triangle
-		if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[1])) > 0) return false;
-		if (DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[2])) > 0) return false;
-		if (DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0])) > 0) return false;
+		if ((DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[1])) > 0) ||
+			(DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[2])) > 0) ||
+			(DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0])) > 0))
+		{
+			return false;
+		}
 
 		//if we don't care where the intersection is we just return true before setting v_intersection
 		if (v_intersection == nullptr)
@@ -272,31 +424,34 @@ public:
 		*v_intersection = v_trianglePlaneIntersection;
 		*depth = v_trianglePlaneIntersection.z;
 
-		if (pixelColor != nullptr)
+		// calculating the texture coordinates
+		if (pixelColor == nullptr)
 		{
-			Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
-			Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
-
-			Vec3D v_intersectionRelativeToTriangle = SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0]);
-
-			Matrix3D triangleMatrix =
-			{
-				v_triangleEdge1,
-				v_triangleEdge2,
-				v_triangleNormal
-			};
-
-			Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
-
-			Vec2D textureCoordinates = { 0, 0 };
-
-			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge1, triangleEdgeScalars.x));
-			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
-			AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
-
-			*pixelColor = textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+			return true;
 		}
 
+		Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
+		Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
+
+		Vec3D v_intersectionRelativeToTriangle = SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0]);
+
+		Matrix3D triangleMatrix =
+		{
+			v_triangleEdge1,
+			v_triangleEdge2,
+			v_triangleNormal
+		};
+
+		Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
+
+		Vec2D textureCoordinates = { 0, 0 };
+
+		AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge1, triangleEdgeScalars.x));
+		AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
+		AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
+
+		*pixelColor = textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+		
 		return true;
 	}
 
@@ -311,7 +466,7 @@ public:
 		return AddVec3D(VecScalarMultiplication3D(v_direction, f_scalingFactor), v_start);
 	}
 
-	bool TriangleIntersection_RM(Triangle triangle, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr)
+	bool TriangleIntersection_RM(Triangle triangle, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* depth = nullptr, olc::Pixel* pixelColor = nullptr)
 	{
 		Vec3D v_triangleEdge1 = SubtractVec3D(triangle.vertices[1], triangle.vertices[0]);
 		Vec3D v_triangleEdge2 = SubtractVec3D(triangle.vertices[2], triangle.vertices[0]);
@@ -330,10 +485,9 @@ public:
 		Vec3D v_triangleEdge2_normal = CrossProduct(SubtractVec3D(triangle.vertices[2], triangle.vertices[1]), v_triangleNormal);
 		Vec3D v_triangleEdge3_normal = CrossProduct(SubtractVec3D(triangle.vertices[0], triangle.vertices[2]), v_triangleNormal);
 
-		float f_maxDistance = 10;
 		float f_totalDistanceTravelled = 0;
 
-		while (f_totalDistanceTravelled < f_maxDistance)
+		while (f_totalDistanceTravelled < RENDER_DISTANCE)
 		{
 			float f_signedDistanceToPlane = f_trianglePlaneOffset - DotProduct3D(v_start, v_triangleNormal);
 
@@ -343,9 +497,9 @@ public:
 			float f_distanceToTriangle;
 
 			// if the projectedPoint is inside the triangle then the distance to the triangle is just the distance to the plane
-			if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0])) < 0 &&
-				DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1])) < 0 &&
-				DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2])) < 0)
+			if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0])) <= 0 &&
+				DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1])) <= 0 &&
+				DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2])) <= 0)
 			{
 				f_distanceToTriangle = abs(f_signedDistanceToPlane);
 			}
@@ -366,7 +520,7 @@ public:
 			
 			AddToVec3D(&v_start, VecScalarMultiplication3D(v_direction, f_distanceToTriangle));
 
-			if (f_distanceToTriangle < 0.01)
+			if (f_distanceToTriangle < TOUCHING_DISTANCE)
 			{
 				if (v_intersection == nullptr)
 				{
@@ -374,6 +528,36 @@ public:
 				}
 
 				*v_intersection = v_start;
+				*depth = v_start.z;
+
+				if (pixelColor == nullptr)
+				{
+					return true;
+				}
+
+				// calculating the texture coordinates
+
+				Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
+				Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
+
+				Vec3D v_intersectionRelativeToTriangle = SubtractVec3D(v_start, triangle.vertices[0]);
+
+				Matrix3D triangleMatrix =
+				{
+					v_triangleEdge1,
+					v_triangleEdge2,
+					v_triangleNormal
+				};
+
+				Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
+
+				Vec2D textureCoordinates = { 0, 0 };
+
+				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge1, triangleEdgeScalars.x));
+				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
+				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
+
+				*pixelColor = textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				return true;
 			}

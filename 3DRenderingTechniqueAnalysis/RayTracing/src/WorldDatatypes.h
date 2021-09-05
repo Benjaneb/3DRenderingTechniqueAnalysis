@@ -25,6 +25,12 @@ struct Triangle
 	float luminance = 0;
 };
 
+// useful for texturing
+struct VertexPair2D
+{
+	Vec2D vertices[2];
+};
+
 struct Light
 {
 	Vec3D coords;
