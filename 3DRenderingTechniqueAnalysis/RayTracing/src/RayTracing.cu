@@ -13,17 +13,25 @@
 
 // Global variables
 
-Player g_player = { { 0, 1, 0 }, { 0, { 0, 0, 1 } }, PI * 0.5f };
+Player g_player = { { 0, 1, 0 }, { 1, { 0, 0, 0 } }, TAU * 0.25f };
 
-//1 dimensional instead of 2 dimensional because maybe faster
+// 1 dimensional instead of 2 dimensional because maybe faster
 olc::Pixel g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH];
 float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
-std::vector<Light> g_lights;
+std::vector<LightSource> g_lights;
 
 olc::Sprite* textureAtlas;
+
+enum ControlsType
+{
+	TYPE_1,
+	TYPE_2
+};
+
+ControlsType g_controlsType = TYPE_2;
 
 class Engine : public olc::PixelGameEngine
 {
@@ -47,7 +55,7 @@ public:
 		};
 		g_triangles = { triangle1 };
 
-		Light sun = { { 0, 13, 0 }, { 255, 255, 190 } };
+		LightSource sun = { { 0, 13, 0 }, { 255, 255, 190 } };
 		g_lights = { sun };
 
 		return true;
@@ -63,56 +71,129 @@ public:
 
 	void Controlls(float fElapsedTime)
 	{
-		int speed = 3;
+		float movementSpeed = 5 * fElapsedTime;
+		float rotationSpeed = 2.5 * fElapsedTime;
+
+		/*Quaternion q1 = { 0.5, { 0.5, 0.5, 0.5 } };
+		Quaternion q2 = { 0, { 0, 1, 0 } };
+
+		std::cout << QuaternionMultiplication(q1, q2).realPart << std::endl;
+		std::cout << QuaternionMultiplication(q1, q2).vecPart.x << std::endl;
+		std::cout << QuaternionMultiplication(q1, q2).vecPart.y << std::endl;
+		std::cout << QuaternionMultiplication(q1, q2).vecPart.z << std::endl;*/
+
+		// movement
 		
 		if (GetKey(olc::Key::W).bHeld)
 		{
-			
+			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, 1 } }, ConjugateQuaternion(g_player.q_orientation));
+
+			if (g_controlsType == TYPE_1)
+			{
+				q_newDirection.vecPart.y = 0;
+			}
+
+			NormalizeVec3D(&q_newDirection.vecPart);
+			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
+
+			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
 		}
 		
 		if (GetKey(olc::Key::A).bHeld)
 		{
-			
+			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { -1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
+
+			if (g_controlsType == TYPE_1)
+			{
+				q_newDirection.vecPart.y = 0;
+			}
+
+			NormalizeVec3D(&q_newDirection.vecPart);
+			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
+
+			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
 		}
 		
 		if (GetKey(olc::Key::S).bHeld)
 		{
-			
+			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, -1 } }, ConjugateQuaternion(g_player.q_orientation));
+
+			if (g_controlsType == TYPE_1)
+			{
+				q_newDirection.vecPart.y = 0;
+			}
+
+			NormalizeVec3D(&q_newDirection.vecPart);
+			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
+
+			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
 		}
 		
 		if (GetKey(olc::Key::D).bHeld)
 		{
-			
+			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
+
+			if (g_controlsType == TYPE_1)
+			{
+				q_newDirection.vecPart.y = 0;
+			}
+
+			NormalizeVec3D(&q_newDirection.vecPart);
+			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
+
+			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
+		}
+
+		if (GetKey(olc::Key::SPACE).bHeld)
+		{
+			g_player.coords.y += movementSpeed;
+		}
+
+		if (GetKey(olc::Key::SHIFT).bHeld)
+		{
+			g_player.coords.y -= movementSpeed;
+		}
+
+		// rotation
+		
+		if (GetKey(olc::Key::RIGHT).bHeld)
+		{
+			NormalizeQuaternion(&g_player.q_orientation);
+
+			Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
+
+			Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, rotationSpeed);
+
+			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
 		}
 		
 		if (GetKey(olc::Key::LEFT).bHeld)
 		{
-			
-		}
-		
-		if (GetKey(olc::Key::RIGHT).bHeld)
-		{
-			
+			NormalizeQuaternion(&g_player.q_orientation);
+
+			Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
+
+			Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, -rotationSpeed);
+
+			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
 		}
 		
 		if (GetKey(olc::Key::UP).bHeld)
 		{
-			
+			NormalizeQuaternion(&g_player.q_orientation);
+
+			Quaternion rotationQuaternion = CreateRotationQuaternion({ 1, 0, 0 }, -rotationSpeed);
+
+			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
 		}
 		
 		if (GetKey(olc::Key::DOWN).bHeld)
 		{
-			
-		}
-		
-		if (GetKey(olc::Key::SPACE).bHeld)
-		{
-			g_player.coords.y += speed * fElapsedTime;
-		}
-		
-		if (GetKey(olc::Key::SHIFT).bHeld)
-		{
-			g_player.coords.y -= speed * fElapsedTime;
+			NormalizeQuaternion(&g_player.q_orientation);
+
+			Quaternion rotationQuaternion = CreateRotationQuaternion({ 1, 0, 0 }, rotationSpeed);
+
+			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
 		}
 	}
 
@@ -127,6 +208,8 @@ public:
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
 
+				Vec3D v_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, ConjugateQuaternion(g_player.q_orientation)).vecPart;
+
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT * 0.5f);
 
@@ -134,11 +217,11 @@ public:
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = { 0, 0, 0 };
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
-				RenderGround(g_player.coords, v_direction, screenX, screenY);
+				RenderGround(g_player.coords, v_newDirection, screenX, screenY);
 
-				//RenderSpheres(g_player.coords, v_direction, screenX, screenY);
+				//RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
-				//RenderTriangles(g_player.coords, v_direction, screenX, screenY);
+				//RenderTriangles(g_player.coords, v_newDirection, screenX, screenY);
 
 				Draw(screenX, screenY, g_pixels[SCREEN_WIDTH * screenY + screenX]);
 			}
@@ -194,8 +277,12 @@ public:
 		float signedTextureWidth = (textureVertexPair.vertices[1].x - textureVertexPair.vertices[0].x) * textureScalar;
 		float signedTextureHeight = (textureVertexPair.vertices[1].y - textureVertexPair.vertices[0].y) * textureScalar;
 
-		float textureX = fmod(abs(rayGroundIntersection.x), signedTextureWidth) / abs(signedTextureWidth);
-		float textureY = fmod(abs(rayGroundIntersection.z), signedTextureHeight) / abs(signedTextureHeight);
+		float textureX = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
+		float textureY = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
+
+		// if the textureCoordinates are negative, we need to flip them around the center of the texture and make them positive
+		if (textureX < 0) textureX += 1;
+		if (textureY < 0) textureY += 1;
 
 		*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
 
@@ -231,8 +318,12 @@ public:
 				float signedTextureWidth = (textureVertexPair.vertices[1].x - textureVertexPair.vertices[0].x) * textureScalar;
 				float signedTextureHeight = (textureVertexPair.vertices[1].y - textureVertexPair.vertices[0].y) * textureScalar;
 
-				float textureX = fmod(abs(v_start.x), signedTextureWidth) / abs(signedTextureWidth);
-				float textureY = fmod(abs(v_start.z), signedTextureHeight) / abs(signedTextureHeight);
+				float textureX = fmod(v_start.x, signedTextureWidth) / signedTextureWidth;
+				float textureY = fmod(v_start.z, signedTextureHeight) / signedTextureHeight;
+
+				// if the textureCoordinates are negative, we need to flip them around the center of the texture and make them positive
+				if (textureX < 0) textureX += 1;
+				if (textureY < 0) textureY += 1;
 
 				*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
 
@@ -286,7 +377,9 @@ public:
 
 				if (g_spheres[i].luminance > 0)
 				{
-					pixelColor.r = g_pixels[SCREEN_WIDTH * screenY + screenX].r;
+					pixelColor.r = (g_pixels[SCREEN_WIDTH * screenY + screenX].r + pixelColor.r) / 2;
+					pixelColor.g = (g_pixels[SCREEN_WIDTH * screenY + screenX].g + pixelColor.g) / 2;
+					pixelColor.b = (g_pixels[SCREEN_WIDTH * screenY + screenX].b + pixelColor.b) / 2;
 				}
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
@@ -373,7 +466,7 @@ public:
 
 		for (int i = 0; i < g_triangles.size(); i++)
 		{
-			intersectionExists = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, &v_intersection, &depth, &pixelColor);
+			intersectionExists = TriangleIntersection_RM(g_triangles[i], v_start, v_direction, &v_intersection, &depth, &pixelColor);
 		}
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])

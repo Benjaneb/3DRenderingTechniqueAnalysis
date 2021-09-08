@@ -296,8 +296,31 @@ Matrix3D InverseMatrix3D(Matrix3D m)
 
 // Methods for quaternions
 
+Quaternion CreateRotationQuaternion(Vec3D axis, float angle)
+{
+	return { cos(angle * 0.5f), VecScalarMultiplication3D(axis, sin(angle * 0.5f)) };
+}
+
+Quaternion ConjugateQuaternion(Quaternion q)
+{
+	return { q.realPart, { -q.vecPart.x, -q.vecPart.y, -q.vecPart.z } };
+}
+
 // Multiplies two quaternions
+
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
+{
+	Quaternion result = { 0, { 0, 0, 0 } };
+
+	result.vecPart.x = q1.vecPart.x * q2.realPart + q1.vecPart.y * q2.vecPart.z - q1.vecPart.z * q2.vecPart.y + q1.realPart * q2.vecPart.x;
+	result.vecPart.y = -q1.vecPart.x * q2.vecPart.z + q1.vecPart.y * q2.realPart + q1.vecPart.z * q2.vecPart.x + q1.realPart * q2.vecPart.y;
+	result.vecPart.z = q1.vecPart.x * q2.vecPart.y - q1.vecPart.y * q2.vecPart.x + q1.vecPart.z * q2.realPart + q1.realPart * q2.vecPart.z;
+	result.realPart = -q1.vecPart.x * q2.vecPart.x - q1.vecPart.y * q2.vecPart.y - q1.vecPart.z * q2.vecPart.z + q1.realPart * q2.realPart;
+
+	return result;
+}
+
+/*Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
 {
 	Quaternion result = { 0, { 0, 0, 0 } };
 
@@ -309,7 +332,7 @@ Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
 	result.vecPart = AddVec3D(result.vecPart, CrossProduct(q1.vecPart, q2.vecPart));
 
 	return result;
-}
+}*/
 
 // Multiplies three quaternions
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
@@ -317,4 +340,14 @@ Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
 	Quaternion firstMultiplication = QuaternionMultiplication(q1, q2);
 
 	return QuaternionMultiplication(firstMultiplication, q3);
+}
+
+void NormalizeQuaternion(Quaternion* q)
+{
+	float reciprocalLength = 1 / sqrt(q->realPart * q->realPart + q->vecPart.x * q->vecPart.x + q->vecPart.y * q->vecPart.y + q->vecPart.z * q->vecPart.z);
+
+	q->realPart *= reciprocalLength;
+	q->vecPart.x *= reciprocalLength;
+	q->vecPart.y *= reciprocalLength;
+	q->vecPart.z *= reciprocalLength;
 }

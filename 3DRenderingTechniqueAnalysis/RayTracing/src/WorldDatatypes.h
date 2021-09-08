@@ -5,7 +5,7 @@
 struct Player
 {
 	Vec3D coords;
-	Quaternion q_direction;
+	Quaternion q_orientation;
 	float FOV;
 };
 
@@ -31,7 +31,10 @@ struct VertexPair2D
 	Vec2D vertices[2];
 };
 
-struct Light
+// NOTE:
+// probably unnecessary
+// could just use the existing datatypes
+struct LightSource
 {
 	Vec3D coords;
 	olc::Pixel color;
