@@ -1,7 +1,7 @@
 #define OLC_PGE_APPLICATION
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 500
-#define RENDER_DISTANCE 10
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+#define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 
 #include <iostream>
@@ -15,7 +15,7 @@
 
 Player g_player = { { 0, 1, 0 }, { 1, { 0, 0, 0 } }, TAU * 0.25f };
 
-// 1 dimensional instead of 2 dimensional because maybe faster
+// 1-dimensional instead of 2-dimensional because maybe faster
 olc::Pixel g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH];
 float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
 
@@ -44,9 +44,9 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		textureAtlas = new olc::Sprite("textureAtlas.png");
+		textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
-		Sphere sphere1 = { { 1, 1, 10 }, 4, olc::BLUE };
+		Sphere sphere1 = { { 1, 1, 10 }, 4, olc::BLUE, 2 };
 		g_spheres = { sphere1 };
 
 		Triangle triangle1 = {
@@ -71,18 +71,10 @@ public:
 
 	void Controlls(float fElapsedTime)
 	{
-		float movementSpeed = 5 * fElapsedTime;
+		float movementSpeed = 7 * fElapsedTime;
 		float rotationSpeed = 2.5 * fElapsedTime;
 
-		/*Quaternion q1 = { 0.5, { 0.5, 0.5, 0.5 } };
-		Quaternion q2 = { 0, { 0, 1, 0 } };
-
-		std::cout << QuaternionMultiplication(q1, q2).realPart << std::endl;
-		std::cout << QuaternionMultiplication(q1, q2).vecPart.x << std::endl;
-		std::cout << QuaternionMultiplication(q1, q2).vecPart.y << std::endl;
-		std::cout << QuaternionMultiplication(q1, q2).vecPart.z << std::endl;*/
-
-		// movement
+		// Movement
 		
 		if (GetKey(olc::Key::W).bHeld)
 		{
@@ -154,7 +146,7 @@ public:
 			g_player.coords.y -= movementSpeed;
 		}
 
-		// rotation
+		// Rotation
 		
 		if (GetKey(olc::Key::RIGHT).bHeld)
 		{
@@ -213,13 +205,13 @@ public:
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT * 0.5f);
 
-				//clearing the buffers
-				g_pixels[SCREEN_WIDTH * screenY + screenX] = { 0, 0, 0 };
+				// Clearing the buffers
+				g_pixels[SCREEN_WIDTH * screenY + screenX] = { 137, 250, 255 };
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
 				RenderGround(g_player.coords, v_newDirection, screenX, screenY);
 
-				//RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
+				RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
 				//RenderTriangles(g_player.coords, v_newDirection, screenX, screenY);
 
@@ -267,7 +259,7 @@ public:
 		Vec3D rayGroundIntersection = AddVec3D(v_start, v_direction);
 
 		*v_intersection = rayGroundIntersection;
-		*depth = rayGroundIntersection.z;
+		*depth = Distance3D(g_player.coords, rayGroundIntersection);
 
 		if (pixelColor == nullptr)
 		{
@@ -308,7 +300,7 @@ public:
 				}
 
 				*v_intersection = v_start;
-				*depth = v_start.z;
+				*depth = Distance3D(g_player.coords, v_start);
 
 				if (pixelColor == nullptr)
 				{
@@ -340,7 +332,7 @@ public:
 	{
 		Vec3D v_intersection = { 0, 0, 0 };
 		float minDistance_RM = 0;
-		bool shadow;
+		bool shadow = 1;
 		olc::Pixel pixelColor;
 		float depth = 0;
 
@@ -348,7 +340,7 @@ public:
 		{
 			//bool intersectionExists = SphereIntersection_RT(g_spheres[i], v_start, v_direction, &v_intersection);
 
-			bool intersectionExists = SphereIntersection_RM(g_spheres[i], v_start, v_direction, &v_intersection, &minDistance_RM, &depth);
+			bool intersectionExists = SphereIntersection_RM(g_spheres[i], v_start, v_direction, &v_intersection, &depth, &minDistance_RM);
 
 			// Hard shadows
 			if (g_spheres[i].luminance <= 0)
@@ -367,29 +359,34 @@ public:
 				}
 			}
 
+			// No glow
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
 				// Color calculation
-				float glowBrightness = 1 / (minDistance_RM + 1);
-				pixelColor.r = g_spheres[i].color.r * shadow * glowBrightness;
-				pixelColor.g = g_spheres[i].color.g * shadow * glowBrightness;
-				pixelColor.b = g_spheres[i].color.b * shadow * glowBrightness;
-
-				if (g_spheres[i].luminance > 0)
-				{
-					pixelColor.r = (g_pixels[SCREEN_WIDTH * screenY + screenX].r + pixelColor.r) / 2;
-					pixelColor.g = (g_pixels[SCREEN_WIDTH * screenY + screenX].g + pixelColor.g) / 2;
-					pixelColor.b = (g_pixels[SCREEN_WIDTH * screenY + screenX].b + pixelColor.b) / 2;
-				}
+				pixelColor.r = g_spheres[i].color.r * shadow;
+				pixelColor.b = g_spheres[i].color.b * shadow;
+				pixelColor.g = g_spheres[i].color.g * shadow;
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
+			}
+			// Glow
+			else if (!intersectionExists && g_spheres[i].luminance > 0)
+			{
+				// Color calculation
+				float glowBrightness = g_spheres[i].luminance / (pow(minDistance_RM, 3) + 1);
+				pixelColor.r = Min(255, g_spheres[i].color.r * glowBrightness);
+				pixelColor.g = Min(255, g_spheres[i].color.g * glowBrightness);
+				pixelColor.b = Min(255, g_spheres[i].color.b * glowBrightness);
+
+				MixColor(&pixelColor, g_pixels[SCREEN_WIDTH * screenY + screenX]);
+				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
 			}
 		}
 	}
 
 	// Ray tracing for spheres
-	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr)
+	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction, float* depth = nullptr, Vec3D* v_intersection = nullptr)
 	{
 		float k1 = (v_direction.x != 0) ? (v_direction.y / v_direction.x) : FLT_MAX;
 		float k2 = (v_direction.x != 0) ? (v_direction.z / v_direction.x) : FLT_MAX;
@@ -428,11 +425,14 @@ public:
 		if (dotProduct < 0) return false;
 
 		*v_intersection = v_correctHit;
+		*depth = Distance3D(g_player.coords, v_correctHit);
+
 		return true;
 	}
 
 	// Ray marching for spheres
-	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* minDistance = nullptr, float* depth = nullptr)
+	bool SphereIntersection_RM(Sphere sphere, Vec3D v_start, Vec3D v_direction, 
+		Vec3D* v_intersection = nullptr, float* depth = nullptr, float* minDistance = nullptr)
 	{
 		float distanceTravelled = 0;
 		float currentMin = INFINITY;
@@ -446,7 +446,14 @@ public:
 
 			if (distance < TOUCHING_DISTANCE)
 			{
-				if (v_intersection != nullptr) *v_intersection = v_start;
+				if (v_intersection == nullptr) 
+				{
+					return true;
+				}
+
+				*v_intersection = v_start;
+				*depth = Distance3D(g_player.coords, v_start);
+
 				return true;
 			}
 		}
@@ -466,7 +473,7 @@ public:
 
 		for (int i = 0; i < g_triangles.size(); i++)
 		{
-			intersectionExists = TriangleIntersection_RM(g_triangles[i], v_start, v_direction, &v_intersection, &depth, &pixelColor);
+			intersectionExists = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, &v_intersection, &depth, &pixelColor);
 		}
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
@@ -508,14 +515,14 @@ public:
 			return false;
 		}
 
-		//if we don't care where the intersection is we just return true before setting v_intersection
+		// if we don't care where the intersection is we just return true before setting v_intersection
 		if (v_intersection == nullptr)
 		{
 			return true;
 		}
 
 		*v_intersection = v_trianglePlaneIntersection;
-		*depth = v_trianglePlaneIntersection.z;
+		*depth = Distance3D(g_player.coords, v_trianglePlaneIntersection);
 
 		// calculating the texture coordinates
 		if (pixelColor == nullptr)
@@ -589,14 +596,14 @@ public:
 
 			float f_distanceToTriangle;
 
-			// if the projectedPoint is inside the triangle then the distance to the triangle is just the distance to the plane
+			// If the projectedPoint is inside the triangle then the distance to the triangle is just the distance to the plane
 			if (DotProduct3D(v_triangleEdge1_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[0])) <= 0 &&
 				DotProduct3D(v_triangleEdge2_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[1])) <= 0 &&
 				DotProduct3D(v_triangleEdge3_normal, SubtractVec3D(vecProjectedOnPlane, triangle.vertices[2])) <= 0)
 			{
 				f_distanceToTriangle = abs(f_signedDistanceToPlane);
 			}
-			//otherwise, the distance to the triangle is the distance to the closest edge of the triangle
+			// Otherwise, the distance to the triangle is the distance to the closest edge of the triangle
 			else
 			{
 				float distanceToEdge1 = DistanceToEdge(v_start, triangle.vertices[1], triangle.vertices[0]);
@@ -621,14 +628,14 @@ public:
 				}
 
 				*v_intersection = v_start;
-				*depth = v_start.z;
+				*depth = Distance3D(g_player.coords, v_start);
 
 				if (pixelColor == nullptr)
 				{
 					return true;
 				}
 
-				// calculating the texture coordinates
+				// Calculating the texture coordinates
 
 				Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
 				Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
@@ -672,6 +679,13 @@ public:
 		Vec3D v_closestPoint = VecScalarMultiplication3D(v_edgeDirection, Clamp(f_projectedPointOnEdgelength, 0, f_edgeLength));
 
 		return Distance3D(v_point, v_closestPoint);
+	}
+
+	void MixColor(olc::Pixel* color1, olc::Pixel color2)
+	{
+		color1->r = (color2.r + color1->r) / 2;
+		color1->g = (color2.g + color1->g) / 2;
+		color1->b = (color2.b + color1->b) / 2;
 	}
 };
 
