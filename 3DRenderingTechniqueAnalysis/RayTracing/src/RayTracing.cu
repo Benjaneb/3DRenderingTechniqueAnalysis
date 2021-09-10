@@ -15,15 +15,14 @@
 
 Player g_player = { { 0, 1, 0 }, { 1, { 0, 0, 0 } }, TAU * 0.25f };
 
-// 1-dimensional instead of 2-dimensional because maybe faster
-olc::Pixel g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH];
-float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
+olc::Pixel g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH]; // Pixel buffer that contains all pixels that'll be drawn on screen
+float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the most recent distance to the drawn object on every pixel
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
 std::vector<LightSource> g_lights;
 
-olc::Sprite* textureAtlas;
+olc::Sprite* g_textureAtlas;
 
 enum ControlsType
 {
@@ -44,7 +43,7 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
+		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
 		Sphere sphere1 = { { 1, 1, 10 }, 4, olc::BLUE, 2 };
 		g_spheres = { sphere1 };
@@ -276,7 +275,7 @@ public:
 		if (textureX < 0) textureX += 1;
 		if (textureY < 0) textureY += 1;
 
-		*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
+		*pixelColor = g_textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
 
 		return true;
 	}
@@ -317,7 +316,7 @@ public:
 				if (textureX < 0) textureX += 1;
 				if (textureY < 0) textureY += 1;
 
-				*pixelColor = textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
+				*pixelColor = g_textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
 
 				return true;
 			}
@@ -333,7 +332,6 @@ public:
 		Vec3D v_intersection = { 0, 0, 0 };
 		float minDistance_RM = 0;
 		bool shadow = 1;
-		olc::Pixel pixelColor;
 		float depth = 0;
 
 		for (int i = 0; i < g_spheres.size(); i++)
@@ -362,7 +360,7 @@ public:
 			// No glow
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
-				// Color calculation
+				olc::Pixel pixelColor;
 				pixelColor.r = g_spheres[i].color.r * shadow;
 				pixelColor.b = g_spheres[i].color.b * shadow;
 				pixelColor.g = g_spheres[i].color.g * shadow;
@@ -370,17 +368,21 @@ public:
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
 			}
-			// Glow
+			// Glow (mix background color with glow color)
 			else if (!intersectionExists && g_spheres[i].luminance > 0)
 			{
-				// Color calculation
-				float glowBrightness = g_spheres[i].luminance / (pow(minDistance_RM, 3) + 1);
-				pixelColor.r = Min(255, g_spheres[i].color.r * glowBrightness);
-				pixelColor.g = Min(255, g_spheres[i].color.g * glowBrightness);
-				pixelColor.b = Min(255, g_spheres[i].color.b * glowBrightness);
+				olc::Pixel glowColor;
 
-				MixColor(&pixelColor, g_pixels[SCREEN_WIDTH * screenY + screenX]);
-				g_pixels[SCREEN_WIDTH * screenY + screenX] = pixelColor;
+				float glowBrightness = 1 / ((minDistance_RM / g_spheres[i].luminance) + 1);
+
+				glowColor = ColorScalarMultiplication(g_spheres[i].color, glowBrightness);
+
+				AddToColor(&glowColor, g_pixels[SCREEN_WIDTH * screenY + screenX]);
+
+				// Makes sure the background doesn't get darker when the glow decreases
+				glowColor = ColorScalarMultiplication(glowColor, 1 / (1 + glowBrightness));
+
+				g_pixels[SCREEN_WIDTH * screenY + screenX] = glowColor;
 			}
 		}
 	}
@@ -550,7 +552,7 @@ public:
 		AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
 		AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-		*pixelColor = textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+		*pixelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
 		
 		return true;
 	}
@@ -657,7 +659,7 @@ public:
 				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
 				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-				*pixelColor = textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+				*pixelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				return true;
 			}

@@ -2,6 +2,8 @@
 #define PI 3.141592
 #define TAU 6.283185
 
+#include "olcPixelGameEngine.h"
+
 /*
 // Datatypes
 */
@@ -66,7 +68,9 @@ float Lerp(float startValue, float endValue, float t)
 	return startValue + (endValue - startValue) * t;
 }
 
+//
 // Methods for 2D vectors
+//
 
 void AddToVec2D(Vec2D* v1, Vec2D v2)
 {
@@ -134,7 +138,9 @@ Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, float t)
 	return result;
 }
 
+//
 // Methods for 3D vectors
+//
 
 void AddToVec3D(Vec3D* v1, Vec3D v2)
 {
@@ -235,7 +241,9 @@ Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
 	return result;
 }
 
+//
 // Methods for matrices (and vectors I guess)
+//
 
 Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 {
@@ -294,7 +302,9 @@ Matrix3D InverseMatrix3D(Matrix3D m)
 	return invertedMatrix;
 }
 
+//
 // Methods for quaternions
+//
 
 Quaternion CreateRotationQuaternion(Vec3D axis, float angle)
 {
@@ -350,4 +360,49 @@ void NormalizeQuaternion(Quaternion* q)
 	q->vecPart.x *= reciprocalLength;
 	q->vecPart.y *= reciprocalLength;
 	q->vecPart.z *= reciprocalLength;
+}
+
+//
+// Methods for colors
+//
+
+uint8_t MinByte(int n)
+{
+	return (255 < n) ? 255 : n;
+}
+
+void AddToColor(olc::Pixel* c1, olc::Pixel c2)
+{
+	c1->r = MinByte(c1->r + c2.r);
+	c1->g = MinByte(c1->g + c2.g);
+	c1->b = MinByte(c1->b + c2.b);
+}
+
+olc::Pixel AddColor(olc::Pixel c1, olc::Pixel c2)
+{
+	return { MinByte(c1.r + c2.r), MinByte(c1.g + c2.g), MinByte(c1.b + c2.b) };
+}
+
+void SubtractFromColor(olc::Pixel* c1, olc::Pixel c2)
+{
+	c1->r = MinByte(c1->r - c2.r);
+	c1->g = MinByte(c1->g - c2.g);
+	c1->b = MinByte(c1->b - c2.b);
+}
+
+olc::Pixel SubtractColor(olc::Pixel c1, olc::Pixel c2)
+{
+	return { MinByte(c1.r - c2.r), MinByte(c1.g - c2.g), MinByte(c1.b - c2.b) };
+}
+
+void ScaleColor(olc::Pixel* c, float scalar)
+{
+	c->r = MinByte(c->r * scalar);
+	c->g = MinByte(c->g * scalar);
+	c->b = MinByte(c->b * scalar);
+}
+
+olc::Pixel ColorScalarMultiplication(olc::Pixel c, float scalar)
+{
+	return { MinByte(c.r * scalar), MinByte(c.g * scalar), MinByte(c.b * scalar) };
 }

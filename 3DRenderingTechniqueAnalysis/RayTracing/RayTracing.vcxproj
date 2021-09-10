@@ -24,9 +24,6 @@
   <ItemGroup>
     <ClInclude Include="src\WorldDatatypes.h" />
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="textureAtlas.png" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{7F5852BC-BE73-4927-AEFA-4BD024897E5F}</ProjectGuid>
