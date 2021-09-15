@@ -247,7 +247,7 @@ Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
 
 Vec3D VecMatrixMultiplication3D(Vec3D v, Matrix3D m)
 {
-	Vec3D result = { 0, 0, 0 };
+	Vec3D result = ZERO_VEC3D;
 
 	AddToVec3D(&result, VecScalarMultiplication3D(m.i_Hat, v.x));
 	AddToVec3D(&result, VecScalarMultiplication3D(m.j_Hat, v.y));
@@ -317,10 +317,9 @@ Quaternion ConjugateQuaternion(Quaternion q)
 }
 
 // Multiplies two quaternions
-
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
 {
-	Quaternion result = { 0, { 0, 0, 0 } };
+	Quaternion result = { 0, ZERO_VEC3D };
 
 	result.vecPart.x = q1.vecPart.x * q2.realPart + q1.vecPart.y * q2.vecPart.z - q1.vecPart.z * q2.vecPart.y + q1.realPart * q2.vecPart.x;
 	result.vecPart.y = -q1.vecPart.x * q2.vecPart.z + q1.vecPart.y * q2.realPart + q1.vecPart.z * q2.vecPart.x + q1.realPart * q2.vecPart.y;
@@ -329,20 +328,6 @@ Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
 
 	return result;
 }
-
-/*Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2)
-{
-	Quaternion result = { 0, { 0, 0, 0 } };
-
-	result.realPart = q1.realPart * q2.realPart + DotProduct3D(q1.vecPart, q2.vecPart);
-
-	result.vecPart = AddVec3D(result.vecPart, VecScalarMultiplication3D(q1.vecPart, q2.realPart));
-	result.vecPart = AddVec3D(result.vecPart, VecScalarMultiplication3D(q2.vecPart, q1.realPart));
-	
-	result.vecPart = AddVec3D(result.vecPart, CrossProduct(q1.vecPart, q2.vecPart));
-
-	return result;
-}*/
 
 // Multiplies three quaternions
 Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
@@ -362,47 +347,3 @@ void NormalizeQuaternion(Quaternion* q)
 	q->vecPart.z *= reciprocalLength;
 }
 
-//
-// Methods for colors
-//
-
-uint8_t MinByte(int n)
-{
-	return (255 < n) ? 255 : n;
-}
-
-void AddToColor(olc::Pixel* c1, olc::Pixel c2)
-{
-	c1->r = MinByte(c1->r + c2.r);
-	c1->g = MinByte(c1->g + c2.g);
-	c1->b = MinByte(c1->b + c2.b);
-}
-
-olc::Pixel AddColor(olc::Pixel c1, olc::Pixel c2)
-{
-	return { MinByte(c1.r + c2.r), MinByte(c1.g + c2.g), MinByte(c1.b + c2.b) };
-}
-
-void SubtractFromColor(olc::Pixel* c1, olc::Pixel c2)
-{
-	c1->r = MinByte(c1->r - c2.r);
-	c1->g = MinByte(c1->g - c2.g);
-	c1->b = MinByte(c1->b - c2.b);
-}
-
-olc::Pixel SubtractColor(olc::Pixel c1, olc::Pixel c2)
-{
-	return { MinByte(c1.r - c2.r), MinByte(c1.g - c2.g), MinByte(c1.b - c2.b) };
-}
-
-void ScaleColor(olc::Pixel* c, float scalar)
-{
-	c->r = MinByte(c->r * scalar);
-	c->g = MinByte(c->g * scalar);
-	c->b = MinByte(c->b * scalar);
-}
-
-olc::Pixel ColorScalarMultiplication(olc::Pixel c, float scalar)
-{
-	return { MinByte(c.r * scalar), MinByte(c.g * scalar), MinByte(c.b * scalar) };
-}

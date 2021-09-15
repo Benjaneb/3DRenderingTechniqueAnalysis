@@ -13,8 +13,9 @@ struct Sphere
 {
 	Vec3D coords;
 	float radius;
-	olc::Pixel color;
-	float luminance = 0;
+	Vec3D color;
+	float emittance;
+	float reflectance;
 	// we'll put this in back later:    olc::Sprite* texture;
 };
 
@@ -22,20 +23,12 @@ struct Triangle
 {
 	Vec3D vertices[3];
 	Vec2D textureVertices[3];
-	float luminance = 0;
+	float emittance;
+	float reflectance;
 };
 
 // useful for texturing
 struct VertexPair2D
 {
 	Vec2D vertices[2];
-};
-
-// NOTE:
-// probably unnecessary
-// could just use the existing datatypes
-struct LightSource
-{
-	Vec3D coords;
-	olc::Pixel color;
 };
