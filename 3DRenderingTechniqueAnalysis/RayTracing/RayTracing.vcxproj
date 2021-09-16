@@ -22,6 +22,7 @@
     <CudaCompile Include="src\RayTracing.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Controlls.h" />
     <ClInclude Include="src\WorldDatatypes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

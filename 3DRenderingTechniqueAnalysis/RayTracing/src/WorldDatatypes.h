@@ -16,7 +16,7 @@ struct Sphere
 	Vec3D color;
 	float emittance;
 	float reflectance;
-	// we'll put this in back later:    olc::Sprite* texture;
+	olc::Sprite* texture = nullptr;
 };
 
 struct Triangle

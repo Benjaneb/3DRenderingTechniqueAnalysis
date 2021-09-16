@@ -12,7 +12,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, 1 } }, ConjugateQuaternion(g_player.q_orientation));
 
-		if (g_controlsType == TYPE_1)
+		if (Options::mcControls)
 		{
 			q_newDirection.vecPart.y = 0;
 		}
@@ -27,7 +27,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { -1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
 
-		if (g_controlsType == TYPE_1)
+		if (Options::mcControls)
 		{
 			q_newDirection.vecPart.y = 0;
 		}
@@ -42,7 +42,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, -1 } }, ConjugateQuaternion(g_player.q_orientation));
 
-		if (g_controlsType == TYPE_1)
+		if (Options::mcControls)
 		{
 			q_newDirection.vecPart.y = 0;
 		}
@@ -57,7 +57,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
 
-		if (g_controlsType == TYPE_1)
+		if (Options::mcControls)
 		{
 			q_newDirection.vecPart.y = 0;
 		}

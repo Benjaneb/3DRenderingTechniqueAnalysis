@@ -16,7 +16,25 @@
 #include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
-#include "Controlls.h"
+
+// Global variables
+
+Player g_player = { { 4, 6, -2 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
+
+Vec3D g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH]; // Pixel buffer that contains all pixels that'll be drawn on screen
+float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the distance to each point represented by a pixel
+
+std::vector<Sphere> g_spheres;
+std::vector<Triangle> g_triangles;
+
+olc::Sprite* g_textureAtlas;
+
+
+namespace Options
+{
+	bool mcControls = false;
+}
+
 
 class Engine : public olc::PixelGameEngine
 {
@@ -27,35 +45,13 @@ public:
 	}
 
 public:
-	// Global variables
-
-	Player g_player;
-
-	Vec3D g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH]; // Pixel buffer that contains all pixels that'll be drawn on screen
-	float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the distance to each point represented by a pixel
-
-	std::vector<Sphere> g_spheres;
-	std::vector<Triangle> g_triangles;
-
-	olc::Sprite* g_textureAtlas;
-
-	enum ControlsType
-	{
-		TYPE_1,
-		TYPE_2
-	};
-
-	ControlsType g_controlsType;
-
 	bool OnUserCreate() override
 	{
-		g_player = { { 4, 6, -2 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
-
 		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
 		g_spheres = 
-		{ 
-			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75 },
+		{
+			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas },
 			{ { 9, 6, 13 }, 3, { 255, 10, 100 }, 0.3, 0.8 }
 		};
 
@@ -63,8 +59,6 @@ public:
 		{
 			{ { { -2, 1, 3 }, { 0, 2, 3 }, { 1, 1.5, 3 } }, { { 0, 0 }, { 1, 1 }, { 0, 1 } } }
 		};
-
-		g_controlsType = TYPE_2;
 
 		return true;
 	}
@@ -336,10 +330,31 @@ public:
 
 		if (v_intersectionColor != nullptr)
 		{
-			*v_intersectionColor = sphere.color;
+			if (sphere.texture == nullptr) *v_intersectionColor = sphere.color;
+			else *v_intersectionColor = SphereTexturing(sphere, *v_intersection);
 		}
 
 		return true;
+	}
+
+	Vec3D SphereTexturing(Sphere sphere, Vec3D v_intersection)
+	{
+		Vec3D iHat = { 1, 0, 0 };
+		Vec3D jHat = { 0, 1, 0 };
+		Vec3D kHat = { 0, 0, 1 };
+
+		SubtractFromVec3D(&v_intersection, sphere.coords);
+
+		v_intersection = { DotProduct3D(v_intersection, iHat), DotProduct3D(v_intersection, jHat), DotProduct3D(v_intersection, kHat) };
+
+		NormalizeVec3D(&v_intersection);
+
+		int textureX = sphere.texture->width * (0.5 + atan2(v_intersection.x, v_intersection.z) / (2 * PI));
+		int textureY = sphere.texture->height * (0.5 - asin(v_intersection.y) / PI);
+
+		olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
+
+		return { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
 	}
 
 	// Ray marching for spheres
@@ -744,3 +759,5 @@ int main()
 		rayTracer.Start();
 	return 0;
 }
+
+#include "Controlls.h"
