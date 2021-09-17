@@ -8,8 +8,6 @@
 #define SAMPLES_PER_PIXEL 1
 #define SAMPLES_PER_RAY 1
 
-#define ZERO_VEC3D { 0, 0, 0 }
-
 #include <iostream>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -47,11 +45,11 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
+		g_textureAtlas = new olc::Sprite("../Assets/basketball.png");
 
 		g_spheres = 
 		{
-			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas },
+			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 4)},
 			{ { 9, 6, 13 }, 3, { 255, 10, 100 }, 0.3, 0.8 }
 		};
 
@@ -85,7 +83,7 @@ public:
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
 
-				Vec3D v_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, ConjugateQuaternion(g_player.q_orientation)).vecPart;
+				Vec3D v_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, QuaternionConjugate(g_player.q_orientation)).vecPart;
 
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT * 0.5f);
@@ -331,28 +329,30 @@ public:
 		if (v_intersectionColor != nullptr)
 		{
 			if (sphere.texture == nullptr) *v_intersectionColor = sphere.color;
-			else *v_intersectionColor = SphereTexturing(sphere, *v_intersection);
+			else *v_intersectionColor = SphereTexturing(sphere, v_normal);
 		}
 
 		return true;
 	}
 
-	Vec3D SphereTexturing(Sphere sphere, Vec3D v_intersection)
+	Vec3D SphereTexturing(Sphere sphere, Vec3D v_normal)
 	{
 		Vec3D iHat = { 1, 0, 0 };
 		Vec3D jHat = { 0, 1, 0 };
 		Vec3D kHat = { 0, 0, 1 };
 
-		SubtractFromVec3D(&v_intersection, sphere.coords);
+		// Rotating axies by sphere rotation quaternion
+		iHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, iHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+		jHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, jHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+		kHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, kHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
 
-		v_intersection = { DotProduct3D(v_intersection, iHat), DotProduct3D(v_intersection, jHat), DotProduct3D(v_intersection, kHat) };
-
-		NormalizeVec3D(&v_intersection);
-
-		int textureX = sphere.texture->width * (0.5 + atan2(v_intersection.x, v_intersection.z) / (2 * PI));
-		int textureY = sphere.texture->height * (0.5 - asin(v_intersection.y) / PI);
-
-		olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
+		v_normal = { DotProduct3D(v_normal, iHat), DotProduct3D(v_normal, jHat), DotProduct3D(v_normal, kHat) };
+		
+		// UV coordinates
+		float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
+		float v = 0.5 - asin(v_normal.y) / PI;
+		
+		olc::Pixel texelColor = sphere.texture->Sample(u, v);
 
 		return { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
 	}

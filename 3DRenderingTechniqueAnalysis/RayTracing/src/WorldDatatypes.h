@@ -17,6 +17,7 @@ struct Sphere
 	float emittance;
 	float reflectance;
 	olc::Sprite* texture = nullptr;
+	Quaternion rotQuaternion = IDENTITY_QUATERNION;
 };
 
 struct Triangle

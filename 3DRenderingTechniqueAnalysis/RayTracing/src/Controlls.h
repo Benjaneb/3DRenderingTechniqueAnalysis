@@ -10,7 +10,7 @@ void Engine::Controlls(float fElapsedTime)
 
 	if (GetKey(olc::Key::W).bHeld)
 	{
-		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, 1 } }, ConjugateQuaternion(g_player.q_orientation));
+		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, 1 } }, QuaternionConjugate(g_player.q_orientation));
 
 		if (Options::mcControls)
 		{
@@ -25,7 +25,7 @@ void Engine::Controlls(float fElapsedTime)
 
 	if (GetKey(olc::Key::A).bHeld)
 	{
-		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { -1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
+		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { -1, 0, 0 } }, QuaternionConjugate(g_player.q_orientation));
 
 		if (Options::mcControls)
 		{
@@ -40,7 +40,7 @@ void Engine::Controlls(float fElapsedTime)
 
 	if (GetKey(olc::Key::S).bHeld)
 	{
-		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, -1 } }, ConjugateQuaternion(g_player.q_orientation));
+		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, -1 } }, QuaternionConjugate(g_player.q_orientation));
 
 		if (Options::mcControls)
 		{
@@ -55,7 +55,7 @@ void Engine::Controlls(float fElapsedTime)
 
 	if (GetKey(olc::Key::D).bHeld)
 	{
-		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
+		Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 1, 0, 0 } }, QuaternionConjugate(g_player.q_orientation));
 
 		if (Options::mcControls)
 		{
@@ -84,7 +84,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		NormalizeQuaternion(&g_player.q_orientation);
 
-		Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
+		Quaternion q_newRotationAxis = QuaternionMultiplication(QuaternionConjugate(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
 
 		Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, rotationSpeed);
 
@@ -95,7 +95,7 @@ void Engine::Controlls(float fElapsedTime)
 	{
 		NormalizeQuaternion(&g_player.q_orientation);
 
-		Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
+		Quaternion q_newRotationAxis = QuaternionMultiplication(QuaternionConjugate(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
 
 		Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, -rotationSpeed);
 
