@@ -4,8 +4,6 @@
 #define ZERO_VEC3D { 0, 0, 0 }
 #define IDENTITY_QUATERNION { 1, { 0, 0, 0 } }
 
-#include "olcPixelGameEngine.h"
-
 /*
 // Datatypes
 */
@@ -348,4 +346,3 @@ void NormalizeQuaternion(Quaternion* q)
 	q->vecPart.y *= reciprocalLength;
 	q->vecPart.z *= reciprocalLength;
 }
-

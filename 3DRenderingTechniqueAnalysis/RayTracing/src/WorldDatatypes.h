@@ -13,7 +13,7 @@ struct Sphere
 {
 	Vec3D coords;
 	float radius;
-	Vec3D color;
+	Vec3D tint;
 	float emittance;
 	float reflectance;
 	olc::Sprite* texture = nullptr;
@@ -25,13 +25,21 @@ struct Sphere
 struct Triangle
 {
 	Vec3D vertices[3];
-	Vec2D textureVertices[3];
+	Vec3D tint;
 	float emittance;
 	float reflectance;
+	olc::Sprite* texture = nullptr;
+	Vec2D textureVertices[3] = { { 0, 1 }, { 0, 0 }, { 1, 0 } };
 };
 
-// Useful for texturing
-struct VertexPair2D
+struct Ground
 {
-	Vec2D vertices[2];
+	float level;
+	Vec3D tint;
+	float emittance;
+	float reflectance;
+	olc::Sprite* texture = nullptr;
+	Vec2D textureCorner1 = { 0, 0 };
+	Vec2D textureCorner2 = { 1, 1 };
+	float textureScalar = 1;
 };

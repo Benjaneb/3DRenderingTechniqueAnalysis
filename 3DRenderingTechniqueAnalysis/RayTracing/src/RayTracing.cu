@@ -2,13 +2,15 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 500
 #define RENDER_DISTANCE 50
-#define TOUCHING_DISTANCE 0.001f
+#define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
-#define MAX_BOUNCES 2
-#define SAMPLES_PER_PIXEL 1
+#define MAX_BOUNCES 3
+#define SAMPLES_PER_PIXEL 100
 #define SAMPLES_PER_RAY 1
+#define WHITE_COLOR { 255, 255, 255 }
 
 #include <iostream>
+#include <random>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "olcPixelGameEngine.h"
@@ -18,7 +20,7 @@
 
 // Global variables
 
-Player g_player = { { 4, 6, -2 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
+Player g_player;
 
 Vec3D g_pixels[SCREEN_HEIGHT * SCREEN_WIDTH]; // Pixel buffer that contains all pixels that'll be drawn on screen
 float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the distance to each point represented by a pixel
@@ -26,14 +28,16 @@ float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the distance to e
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
 
+Ground g_ground;
+
 olc::Sprite* g_textureAtlas;
 
+std::default_random_engine randEngine;
 
 namespace Options
 {
 	bool mcControls = false;
 }
-
 
 class Engine : public olc::PixelGameEngine
 {
@@ -46,18 +50,49 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		g_textureAtlas = new olc::Sprite("../Assets/basketball.png");
+		g_player = { { 1.5, 1.5, -1.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
+
+		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
 		g_spheres = 
 		{
-			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 4)},
-			{ { 9, 6, 13 }, 3, { 255, 10, 100 }, 0.3, 0.8 }
+			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, 10, 0 },
+			{ { 2.3, 0.3, 0.7 }, 0.3, { 1, 1, 1 }, 0.1, 0.2, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
 		};
 
 		g_triangles =
 		{
-			{ { { -2, 1, 3 }, { 0, 2, 3 }, { 1, 1.5, 3 } }, { { 0, 0 }, { 1, 1 }, { 0, 1 } } }
+			// Walls first face
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls second face
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls third face
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls fourth face
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+
+			// Box first face
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			// Box second face
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			// Box third face
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			// Box fourth face							   
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			// Box fifth face							   
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
 		};
+
+		g_ground = { 0, { 1, 1, 1 }, 0.1, 0.5, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
 
 		return true;
 	}
@@ -93,7 +128,7 @@ public:
 
 				for (int i = 0; i < SAMPLES_PER_PIXEL; i++)
 				{
-					// Clearing the buffers                        137, 250, 255
+					// Clearing the buffers
 					g_pixels[SCREEN_WIDTH * screenY + screenX] = ZERO_VEC3D;
 					g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
@@ -101,7 +136,7 @@ public:
 
 					RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
-					//RenderTriangles(g_player.coords, v_newDirection, screenX, screenY);
+					RenderTriangles(g_player.coords, v_newDirection, screenX, screenY);
 
 					AddToVec3D(&pixelColor, g_pixels[SCREEN_WIDTH * screenY + screenX]);
 				}
@@ -125,25 +160,21 @@ public:
 		Vec3D v_intersection = ZERO_VEC3D;
 		float depth = 0;
 
-		float groundLevel = -1;
-		VertexPair2D textureVertexPair = { { { 0, 0 }, { 1, 1 } } };
-		float textureScalar = 10;
-
-		intersectionExists = GroundIntersectionRT(groundLevel, textureVertexPair, textureScalar, v_start, v_direction, &v_intersection, &v_intersectionColor, &depth);
+		intersectionExists = GroundIntersection_RT(v_start, v_direction, &v_intersection, &v_intersectionColor, &depth);
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 		{
-			v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, 0, 0.3, { 0, 1, 0 }, v_intersection, 0);
+			v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.emittance, g_ground.reflectance, { 0, 1, 0 }, v_intersection, 0);
 
 			g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 			g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
 		}
 	}
 
-	bool GroundIntersectionRT(float groundLevel, VertexPair2D textureVertexPair, float textureScalar, Vec3D v_start, Vec3D v_direction,
+	bool GroundIntersection_RT(Vec3D v_start, Vec3D v_direction,
 		Vec3D* v_intersection = nullptr, Vec3D* v_intersectionColor = nullptr, float* depth = nullptr)
 	{
-		if (v_direction.y >= 0 || v_start.y < groundLevel)
+		if (v_direction.y >= 0 || v_start.y < g_ground.level)
 		{
 			return false;
 		}
@@ -153,7 +184,7 @@ public:
 			return true;
 		}
 
-		ScaleVec3D(&v_direction, (groundLevel - v_start.y) / v_direction.y);
+		ScaleVec3D(&v_direction, (g_ground.level - v_start.y) / v_direction.y);
 
 		Vec3D rayGroundIntersection = AddVec3D(v_start, v_direction);
 
@@ -170,27 +201,41 @@ public:
 
 		if (v_intersectionColor == nullptr)
 		{
+			// Don't return any color
 			return true;
 		}
 
-		float signedTextureWidth = (textureVertexPair.vertices[1].x - textureVertexPair.vertices[0].x) * textureScalar;
-		float signedTextureHeight = (textureVertexPair.vertices[1].y - textureVertexPair.vertices[0].y) * textureScalar;
+		*v_intersectionColor = WHITE_COLOR;
 
-		float textureX = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
-		float textureY = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
+		if (g_ground.texture != nullptr)
+		{
+			float signedTextureWidth = (g_ground.textureCorner2.x - g_ground.textureCorner1.x) * g_ground.textureScalar;
+			float signedTextureHeight = (g_ground.textureCorner2.y - g_ground.textureCorner1.y) * g_ground.textureScalar;
 
-		// if the textureCoordinates are negative, we need to flip them around the center of the texture and make them positive
-		if (textureX < 0) textureX += 1;
-		if (textureY < 0) textureY += 1;
+			float t1 = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
+			float t2 = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
 
-		olc::Pixel texelColor = g_textureAtlas->Sample(textureX + textureVertexPair.vertices[0].x, textureY + textureVertexPair.vertices[0].y);
+			// if the textureCoordinates are negative, we need to flip them around the center of the texture and make them positive
+			if (t1 < 0) t1 += 1;
+			if (t2 < 0) t2 += 1;
 
-		*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+			olc::Pixel texelColor = g_textureAtlas->Sample(
+				Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1),
+				Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2)
+			);
+
+			*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+		}
+
+		// Proof that the ConusProduct is the most useful function
+
+		// Tint the color
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.tint);
 
 		return true;
 	}
 
-	/*bool GroundIntersectionRM(float groundLevel, VertexPair2D textureVertexPair, float textureScalar, Vec3D v_start, Vec3D v_direction, 
+	/*bool GroundIntersection_RM(float groundLevel, VertexPair2D textureVertexPair, float textureScalar, Vec3D v_start, Vec3D v_direction, 
 		Vec3D* v_intersection = nullptr, float* depth = nullptr, Vec3D* pixelColor = nullptr)
 	{
 		float totalDistanceTravelled = 0;
@@ -302,7 +347,7 @@ public:
 
 		Vec3D v_correctHit = (dist1 < dist2) ? v_alternative1 : v_alternative2;
 
-		// Check if the intersection is behind the player. if so, discard it
+		// Check if the intersection is behind the ray. if so, discard it
 		if (DotProduct3D(SubtractVec3D(v_correctHit, v_start), v_direction) < 0) return false;
 
 		Vec3D v_normal = SubtractVec3D(v_correctHit, sphere.coords);
@@ -327,40 +372,45 @@ public:
 			*v_surfaceNormal = v_normal;
 		}
 
-		if (v_intersectionColor != nullptr)
+		if (v_intersectionColor == nullptr)
 		{
-			if (sphere.texture == nullptr) *v_intersectionColor = sphere.color;
-			else *v_intersectionColor = SphereTexturing(sphere, v_normal);
+			// Don't return any color
+			return true;
 		}
 
+		*v_intersectionColor = WHITE_COLOR;
+
+		if (sphere.texture != nullptr)
+		{
+			Vec3D i_Hat = { 1, 0, 0 };
+			Vec3D j_Hat = { 0, 1, 0 };
+			Vec3D k_Hat = { 0, 0, 1 };
+
+			// Rotating axies by sphere rotation quaternion
+			i_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, i_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+			j_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, j_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+			k_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, k_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+
+			// Translate normal into new coordinate system
+			v_normal = { DotProduct3D(v_normal, i_Hat), DotProduct3D(v_normal, j_Hat), DotProduct3D(v_normal, k_Hat) };
+
+			// UV coordinates
+			float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
+			float v = 0.5 - asin(v_normal.y) / PI;
+
+			// Interpolate between assigned texture coordinates
+			float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
+			float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
+
+			olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
+
+			*v_intersectionColor = { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
+		}
+		
+		// Tint the color
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.tint);
+
 		return true;
-	}
-
-	Vec3D SphereTexturing(Sphere sphere, Vec3D v_normal)
-	{
-		Vec3D iHat = { 1, 0, 0 };
-		Vec3D jHat = { 0, 1, 0 };
-		Vec3D kHat = { 0, 0, 1 };
-
-		// Rotating axies by sphere rotation quaternion
-		iHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, iHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
-		jHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, jHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
-		kHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, kHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
-
-		// Translate normal into new coordinate system
-		v_normal = { DotProduct3D(v_normal, iHat), DotProduct3D(v_normal, jHat), DotProduct3D(v_normal, kHat) };
-		
-		// UV coordinates
-		float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
-		float v = 0.5 - asin(v_normal.y) / PI;
-		
-		// Interpolate between assigned texture coordinates
-		float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
-		float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
-
-		olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
-
-		return { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
 	}
 
 	// Ray marching for spheres
@@ -408,6 +458,8 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
+				v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_triangles[i].emittance, g_triangles[i].reflectance, v_surfaceNormal, v_intersection, 0);
+
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
 			}
@@ -451,6 +503,11 @@ public:
 
 		AddToVec3D(&v_trianglePlaneIntersection, v_offset);
 
+		if (DotProduct3D(SubtractVec3D(v_trianglePlaneIntersection, v_start), v_direction) < 0)
+		{
+			return false;
+		}
+
 		// if we don't care where the intersection is we just return true before setting v_intersection
 		if (v_intersection != nullptr)
 		{
@@ -469,34 +526,43 @@ public:
 		
 		if (v_intersectionColor == nullptr)
 		{
+			// Don't return any color
 			return true;
 		}
 
-		// from here on we calculate the texture coordinates
+		*v_intersectionColor = WHITE_COLOR;
 
-		Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
-		Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
-
-		Vec3D v_intersectionRelativeToTriangle = SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0]);
-
-		Matrix3D triangleMatrix =
+		if (triangle.texture != nullptr)
 		{
-			v_triangleEdge1,
-			v_triangleEdge2,
-			v_triangleNormal
-		};
+			// from here on we calculate the texture coordinates
 
-		Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
+			Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
+			Vec2D v_textureTriangleEdge2 = SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]);
 
-		Vec2D textureCoordinates = { 0, 0 };
+			Vec3D v_intersectionRelativeToTriangle = SubtractVec3D(v_trianglePlaneIntersection, triangle.vertices[0]);
 
-		AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge1, triangleEdgeScalars.x));
-		AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
-		AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
+			Matrix3D triangleMatrix =
+			{
+				v_triangleEdge1,
+				v_triangleEdge2,
+				v_triangleNormal
+			};
 
-		olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+			Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
 
-		*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+			Vec2D textureCoordinates = { 0, 0 };
+
+			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge1, triangleEdgeScalars.x));
+			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
+			AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
+
+			olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+
+			*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+		}
+		
+		// Tint the color
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.tint);
 		
 		return true;
 	}
@@ -638,53 +704,33 @@ public:
 			return v_outgoingLightColor;
 		}
 
-		Vec3D v_direction = ReturnNormalizedVec3D({ float(rand()), float(rand()), float(rand()) });
+		float randX = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
+		float randY = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
+		float randZ = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
 
-		// The direction vector is in the wrong hemisphere, so we need to flip it into the other hemisphere
+		Vec3D v_direction = ReturnNormalizedVec3D({ randX, randY, randZ });
+
 		if (DotProduct3D(v_surfaceNormal, v_direction) < 0)
 		{
+			// The direction vector is in the wrong hemisphere, so we need to flip it into the other hemisphere
 			ScaleVec3D(&v_direction, -1);
 		}
 
+		Vec3D v_intersection = ZERO_VEC3D;
+		Vec3D v_intersectionColor = ZERO_VEC3D;
+		Vec3D v_normal = ZERO_VEC3D;
+
+		// Checking for an intersection with any of the spheres
+
 		for (int i = 0; i < g_spheres.size(); i++)
 		{
-			Vec3D v_intersection = ZERO_VEC3D;
-			Vec3D v_intersectionColor = ZERO_VEC3D;
-			Vec3D v_normal = ZERO_VEC3D;
-
 			bool intersectionExists = SphereIntersection_RT(g_spheres[i], v_start, v_direction, &v_intersection, &v_intersectionColor, nullptr, &v_normal);
 
 			bool b_rayIsBlocked = false;
 
 			if (intersectionExists)
 			{
-				for (int j = 0; j < g_spheres.size(); j++)
-				{
-					Vec3D v_otherIntersection = ZERO_VEC3D;
-
-					bool otherIntersectionExists = SphereIntersection_RT(g_spheres[j], v_start, v_direction, &v_otherIntersection);
-
-					// If there exists a closer intersection to the ray start vector it means the ray is blocked
-					if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
-					{
-						b_rayIsBlocked = true;
-						break;
-					}
-				}
-
-				for (int j = 0; j < g_triangles.size(); j++)
-				{
-					Vec3D v_otherIntersection = ZERO_VEC3D;
-
-					bool otherIntersectionExists = TriangleIntersection_RT(g_triangles[j], v_start, v_direction, &v_otherIntersection);
-
-					// If there exists a closer intersection to the ray start vector it means the ray is blocked
-					if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
-					{
-						b_rayIsBlocked = true;
-						break;
-					}
-				}
+				b_rayIsBlocked = IsRayBlocked(v_start, v_direction, v_intersection);
 			}
 
 			if (intersectionExists && b_rayIsBlocked == false)
@@ -700,45 +746,17 @@ public:
 			}
 		}
 
+		// Checking for an intersection with any of the triangles
+
 		for (int i = 0; i < g_triangles.size(); i++)
 		{
-			Vec3D v_intersection = ZERO_VEC3D;
-			Vec3D v_intersectionColor = ZERO_VEC3D;
-			Vec3D v_normal = ZERO_VEC3D;
-
 			bool intersectionExists = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, &v_intersection, &v_intersectionColor, nullptr, &v_normal);
 
 			bool b_rayIsBlocked = false;
 
 			if (intersectionExists)
 			{
-				for (int j = 0; j < g_spheres.size(); j++)
-				{
-					Vec3D v_otherIntersection = ZERO_VEC3D;
-
-					bool otherIntersectionExists = SphereIntersection_RT(g_spheres[j], v_start, v_direction, &v_otherIntersection);
-
-					// If there exists a closer intersection to the ray start vector it means the ray is blocked
-					if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
-					{
-						b_rayIsBlocked = true;
-						break;
-					}
-				}
-
-				for (int j = 0; j < g_triangles.size(); j++)
-				{
-					Vec3D v_otherIntersection = ZERO_VEC3D;
-
-					bool otherIntersectionExists = TriangleIntersection_RT(g_triangles[j], v_start, v_direction, &v_otherIntersection);
-
-					// If there exists a closer intersection to the ray start vector it means the ray is blocked
-					if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
-					{
-						b_rayIsBlocked = true;
-						break;
-					}
-				}
+				b_rayIsBlocked = IsRayBlocked(v_start, v_direction, v_intersection);
 			}
 
 			if (intersectionExists && b_rayIsBlocked == false)
@@ -754,7 +772,72 @@ public:
 			}
 		}
 
+		// Checking for an intersection with the ground
+
+		bool intersectionExists = GroundIntersection_RT(v_start, v_direction, &v_intersection, &v_intersectionColor);
+
+		// The ground is always pointing upwards
+		v_normal = { 0, 1, 0 };
+
+		bool b_rayIsBlocked = false;
+
+		if (intersectionExists)
+		{
+			b_rayIsBlocked = IsRayBlocked(v_start, v_direction, v_intersection);
+		}
+
+		if (intersectionExists && b_rayIsBlocked == false)
+		{
+			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.emittance, g_ground.reflectance, v_normal, v_intersection, i_bounceCount + 1);
+
+			AddToVec3D(
+				&v_outgoingLightColor,
+				VecScalarMultiplication3D(v_incomingLightColor, 2 * f_objectReflectance * DotProduct3D(v_surfaceNormal, v_direction))
+			);
+
+			return v_outgoingLightColor;
+		}
+
+		// Nothing was hit
 		return v_outgoingLightColor;
+	}
+
+	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)
+	{
+		Vec3D v_otherIntersection = ZERO_VEC3D;
+
+		for (int j = 0; j < g_spheres.size(); j++)
+		{
+			bool otherIntersectionExists = SphereIntersection_RT(g_spheres[j], v_start, v_direction, &v_otherIntersection);
+
+			// If there exists a closer intersection to the ray start vector it means the ray is blocked
+			if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
+			{
+				return true;
+			}
+		}
+
+		for (int j = 0; j < g_triangles.size(); j++)
+		{
+			bool otherIntersectionExists = TriangleIntersection_RT(g_triangles[j], v_start, v_direction, &v_otherIntersection);
+
+			// If there exists a closer intersection to the ray start vector it means the ray is blocked
+			if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
+			{
+				return true;
+			}
+		}
+
+		bool otherIntersectionExists = GroundIntersection_RT(v_start, v_direction, &v_otherIntersection);
+
+		// If there exists a closer intersection to the ray start vector it means the ray is blocked
+		if (otherIntersectionExists && DistanceSquared3D(v_start, v_otherIntersection) < DistanceSquared3D(v_start, v_intersection))
+		{
+			return true;
+		}
+
+		// The ray is not blocked
+		return false;
 	}
 };
 
