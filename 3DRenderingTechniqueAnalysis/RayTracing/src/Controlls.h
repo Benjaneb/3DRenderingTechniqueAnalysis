@@ -3,7 +3,7 @@
 
 void Engine::Controlls(float fElapsedTime)
 {
-	float movementSpeed = 7 * fElapsedTime;
+	float movementSpeed = 10 * fElapsedTime;
 	float rotationSpeed = 2.5 * fElapsedTime;
 
 	// Movement

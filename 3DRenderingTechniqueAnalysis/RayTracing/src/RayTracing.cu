@@ -49,7 +49,7 @@ public:
 
 		g_spheres = 
 		{
-			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 4)},
+			{ { -5, 6, 11 }, 10, { 100, 200, 255 }, 1, 0.75, g_textureAtlas, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 4)},
 			{ { 9, 6, 13 }, 3, { 255, 10, 100 }, 0.3, 0.8 }
 		};
 
@@ -96,7 +96,7 @@ public:
 					g_pixels[SCREEN_WIDTH * screenY + screenX] = ZERO_VEC3D;
 					g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
-					//RenderGround(g_player.coords, v_newDirection, screenX, screenY);
+					RenderGround(g_player.coords, v_newDirection, screenX, screenY);
 
 					RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
@@ -346,13 +346,18 @@ public:
 		jHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, jHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
 		kHat = QuaternionMultiplication(sphere.rotQuaternion, { 0, kHat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
 
+		// Translate normal into new coordinate system
 		v_normal = { DotProduct3D(v_normal, iHat), DotProduct3D(v_normal, jHat), DotProduct3D(v_normal, kHat) };
 		
 		// UV coordinates
 		float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
 		float v = 0.5 - asin(v_normal.y) / PI;
 		
-		olc::Pixel texelColor = sphere.texture->Sample(u, v);
+		// Interpolate between assigned texture coordinates
+		float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
+		float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
+
+		olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
 
 		return { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
 	}

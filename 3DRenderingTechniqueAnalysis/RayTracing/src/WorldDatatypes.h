@@ -17,6 +17,8 @@ struct Sphere
 	float emittance;
 	float reflectance;
 	olc::Sprite* texture = nullptr;
+	Vec2D textureCorner1 = { 0, 0 };
+	Vec2D textureCorner2 = { 1, 1 };
 	Quaternion rotQuaternion = IDENTITY_QUATERNION;
 };
 
@@ -28,7 +30,7 @@ struct Triangle
 	float reflectance;
 };
 
-// useful for texturing
+// Useful for texturing
 struct VertexPair2D
 {
 	Vec2D vertices[2];
