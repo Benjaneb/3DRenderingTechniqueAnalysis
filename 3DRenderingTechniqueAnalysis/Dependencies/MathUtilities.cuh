@@ -1,6 +1,7 @@
 #pragma once
 #define PI 3.141592
 #define TAU 6.283185
+#define ZERO_VEC3D { 0, 0, 0 }
 
 #include "olcPixelGameEngine.h"
 
