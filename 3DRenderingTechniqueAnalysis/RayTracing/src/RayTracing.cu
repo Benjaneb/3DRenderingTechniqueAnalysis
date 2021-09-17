@@ -31,15 +31,12 @@ Ground g_ground;
 
 olc::Sprite* g_textureAtlas;
 
-enum ControlsType
-{
-	TYPE_1,
-	TYPE_2
-};
-
-ControlsType g_controlsType;
-
 std::default_random_engine randEngine;
+
+namespace Options
+{
+	bool mcControls = false;
+}
 
 class Engine : public olc::PixelGameEngine
 {
@@ -50,7 +47,6 @@ public:
 	}
 
 public:
-
 	bool OnUserCreate() override
 	{
 		g_player = { { 1.5, 1.5, -1.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
@@ -58,8 +54,9 @@ public:
 		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
 		g_spheres = 
-		{ 
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, 10, 0 }
+		{
+			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, 10, 0 },
+			{ { 2.3, 0.3, 0.7 }, 0.3, { 1, 1, 1 }, 0.1, 0.2, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
 		};
 
 		g_triangles =
@@ -96,8 +93,6 @@ public:
 
 		g_ground = { 0, { 1, 1, 1 }, 0.1, 0.5, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
 
-		g_controlsType = TYPE_2;
-
 		return true;
 	}
 
@@ -109,125 +104,8 @@ public:
 		return true;
 	}
 
-	void Controlls(float fElapsedTime)
-	{
-		float movementSpeed = 7 * fElapsedTime;
-		float rotationSpeed = 2.5 * fElapsedTime;
-
-		// Movement
-
-		if (GetKey(olc::Key::W).bHeld)
-		{
-			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, 1 } }, ConjugateQuaternion(g_player.q_orientation));
-
-			if (g_controlsType == TYPE_1)
-			{
-				q_newDirection.vecPart.y = 0;
-			}
-
-			NormalizeVec3D(&q_newDirection.vecPart);
-			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
-
-			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
-		}
-
-		if (GetKey(olc::Key::A).bHeld)
-		{
-			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { -1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
-
-			if (g_controlsType == TYPE_1)
-			{
-				q_newDirection.vecPart.y = 0;
-			}
-
-			NormalizeVec3D(&q_newDirection.vecPart);
-			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
-
-			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
-		}
-
-		if (GetKey(olc::Key::S).bHeld)
-		{
-			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 0, 0, -1 } }, ConjugateQuaternion(g_player.q_orientation));
-
-			if (g_controlsType == TYPE_1)
-			{
-				q_newDirection.vecPart.y = 0;
-			}
-
-			NormalizeVec3D(&q_newDirection.vecPart);
-			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
-
-			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
-		}
-
-		if (GetKey(olc::Key::D).bHeld)
-		{
-			Quaternion q_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, { 1, 0, 0 } }, ConjugateQuaternion(g_player.q_orientation));
-
-			if (g_controlsType == TYPE_1)
-			{
-				q_newDirection.vecPart.y = 0;
-			}
-
-			NormalizeVec3D(&q_newDirection.vecPart);
-			ScaleVec3D(&q_newDirection.vecPart, movementSpeed);
-
-			AddToVec3D(&g_player.coords, q_newDirection.vecPart);
-		}
-
-		if (GetKey(olc::Key::SPACE).bHeld)
-		{
-			g_player.coords.y += movementSpeed;
-		}
-
-		if (GetKey(olc::Key::SHIFT).bHeld)
-		{
-			g_player.coords.y -= movementSpeed;
-		}
-
-		// Rotation
-
-		if (GetKey(olc::Key::RIGHT).bHeld)
-		{
-			NormalizeQuaternion(&g_player.q_orientation);
-
-			Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
-
-			Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, rotationSpeed);
-
-			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
-		}
-
-		if (GetKey(olc::Key::LEFT).bHeld)
-		{
-			NormalizeQuaternion(&g_player.q_orientation);
-
-			Quaternion q_newRotationAxis = QuaternionMultiplication(ConjugateQuaternion(g_player.q_orientation), { 0, { 0, 1, 0 } }, g_player.q_orientation);
-
-			Quaternion rotationQuaternion = CreateRotationQuaternion(q_newRotationAxis.vecPart, -rotationSpeed);
-
-			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
-		}
-
-		if (GetKey(olc::Key::UP).bHeld)
-		{
-			NormalizeQuaternion(&g_player.q_orientation);
-
-			Quaternion rotationQuaternion = CreateRotationQuaternion({ 1, 0, 0 }, -rotationSpeed);
-
-			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
-		}
-
-		if (GetKey(olc::Key::DOWN).bHeld)
-		{
-			NormalizeQuaternion(&g_player.q_orientation);
-
-			Quaternion rotationQuaternion = CreateRotationQuaternion({ 1, 0, 0 }, rotationSpeed);
-
-			g_player.q_orientation = QuaternionMultiplication(g_player.q_orientation, rotationQuaternion);
-		}
-	}
+	// Defined in Controlls.h
+	void Controlls(float fElapsedTime);
 
 	void RayTracing()
 	{
@@ -240,7 +118,7 @@ public:
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
 
-				Vec3D v_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, ConjugateQuaternion(g_player.q_orientation)).vecPart;
+				Vec3D v_newDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, QuaternionConjugate(g_player.q_orientation)).vecPart;
 
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = (SCREEN_HEIGHT - 1) - (y + SCREEN_HEIGHT * 0.5f);
@@ -500,6 +378,33 @@ public:
 		}
 
 		*v_intersectionColor = WHITE_COLOR;
+
+		if (sphere.texture != nullptr)
+		{
+			Vec3D i_Hat = { 1, 0, 0 };
+			Vec3D j_Hat = { 0, 1, 0 };
+			Vec3D k_Hat = { 0, 0, 1 };
+
+			// Rotating axies by sphere rotation quaternion
+			i_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, i_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+			j_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, j_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+			k_Hat = QuaternionMultiplication(sphere.rotQuaternion, { 0, k_Hat }, QuaternionConjugate(sphere.rotQuaternion)).vecPart;
+
+			// Translate normal into new coordinate system
+			v_normal = { DotProduct3D(v_normal, i_Hat), DotProduct3D(v_normal, j_Hat), DotProduct3D(v_normal, k_Hat) };
+
+			// UV coordinates
+			float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
+			float v = 0.5 - asin(v_normal.y) / PI;
+
+			// Interpolate between assigned texture coordinates
+			float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
+			float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
+
+			olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
+
+			*v_intersectionColor = { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
+		}
 		
 		// Tint the color
 		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.tint);
@@ -943,4 +848,4 @@ int main()
 	return 0;
 }
 
-//#include "Controlls.h"
+#include "Controlls.h"

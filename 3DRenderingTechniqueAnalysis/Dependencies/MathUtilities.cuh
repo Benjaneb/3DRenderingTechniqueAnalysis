@@ -2,8 +2,7 @@
 #define PI 3.141592
 #define TAU 6.283185
 #define ZERO_VEC3D { 0, 0, 0 }
-
-#include "olcPixelGameEngine.h"
+#define IDENTITY_QUATERNION { 1, { 0, 0, 0 } }
 
 /*
 // Datatypes
@@ -312,7 +311,7 @@ Quaternion CreateRotationQuaternion(Vec3D axis, float angle)
 	return { cos(angle * 0.5f), VecScalarMultiplication3D(axis, sin(angle * 0.5f)) };
 }
 
-Quaternion ConjugateQuaternion(Quaternion q)
+Quaternion QuaternionConjugate(Quaternion q)
 {
 	return { q.realPart, { -q.vecPart.x, -q.vecPart.y, -q.vecPart.z } };
 }
@@ -347,4 +346,3 @@ void NormalizeQuaternion(Quaternion* q)
 	q->vecPart.y *= reciprocalLength;
 	q->vecPart.z *= reciprocalLength;
 }
-

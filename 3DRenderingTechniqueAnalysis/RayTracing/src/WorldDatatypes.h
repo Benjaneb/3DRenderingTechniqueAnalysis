@@ -16,7 +16,10 @@ struct Sphere
 	Vec3D tint;
 	float emittance;
 	float reflectance;
-	// we'll put this in back later:    olc::Sprite* texture;
+	olc::Sprite* texture = nullptr;
+	Vec2D textureCorner1 = { 0, 0 };
+	Vec2D textureCorner2 = { 1, 1 };
+	Quaternion rotQuaternion = IDENTITY_QUATERNION;
 };
 
 struct Triangle
