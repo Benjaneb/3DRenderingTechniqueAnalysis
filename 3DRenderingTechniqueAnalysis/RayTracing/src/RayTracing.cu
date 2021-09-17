@@ -14,6 +14,7 @@
 #include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
+#include "ParseOBJ.h"
 
 // Global variables
 
