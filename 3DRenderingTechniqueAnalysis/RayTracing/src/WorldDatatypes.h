@@ -13,9 +13,7 @@ struct Sphere
 {
 	Vec3D coords;
 	float radius;
-	Vec3D tint;
-	float emittance;
-	float reflectance;
+	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = { 0, 0 };
 	Vec2D textureCorner2 = { 1, 1 };
@@ -25,9 +23,7 @@ struct Sphere
 struct Triangle
 {
 	Vec3D vertices[3];
-	Vec3D tint;
-	float emittance;
-	float reflectance;
+	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureVertices[3] = { { 0, 1 }, { 0, 0 }, { 1, 0 } };
 };
@@ -35,11 +31,17 @@ struct Triangle
 struct Ground
 {
 	float level;
-	Vec3D tint;
-	float emittance;
-	float reflectance;
+	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = { 0, 0 };
 	Vec2D textureCorner2 = { 1, 1 };
 	float textureScalar = 1;
+};
+
+struct Material
+{
+	Vec3D tint;
+	float emittance;
+	float reflectance;
+	std::string name = ""; // Used for scene grouping in OBJ-files
 };

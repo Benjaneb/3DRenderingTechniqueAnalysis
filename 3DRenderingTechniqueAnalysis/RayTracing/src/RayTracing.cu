@@ -1,11 +1,12 @@
 #define OLC_PGE_APPLICATION
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 500
+#define RAY_TRACER
+#define SCREEN_WIDTH 300
+#define SCREEN_HEIGHT 250
 #define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
-#define MAX_BOUNCES 3
-#define SAMPLES_PER_PIXEL 100
+#define MAX_BOUNCES 1
+#define SAMPLES_PER_PIXEL 1
 #define SAMPLES_PER_RAY 1
 #define WHITE_COLOR { 255, 255, 255 }
 
@@ -53,46 +54,49 @@ public:
 		g_player = { { 1.5, 1.5, -1.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
 
 		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
+		olc::Sprite* g_bananaTexture = new olc::Sprite("../Assets/Banana_texture.png");
 
 		g_spheres = 
 		{
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, 10, 0 },
-			{ { 2.3, 0.3, 0.7 }, 0.3, { 1, 1, 1 }, 0.1, 0.2, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
+			{ { 1.5, 3, 1.5 }, 0.5, { { 0.965, 0.795, 0.3333 }, 20, 0 } }
+			//{ { 2.3, 0.3, 0.7 }, 0.3, { 1, 1, 1 }, 0.1, 0.2, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
 		};
 
-		g_triangles =
-		{
-			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, 0.1, 0.3, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		ImportScene(&g_triangles, "../Assets/Banana.obj", 100, {}, g_bananaTexture);
 
-			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, 0.1, 0.4, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
-		};
+		//g_triangles =
+		//{
+		//	// Walls first face
+		//	{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	// Walls second face
+		//	{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	// Walls third face
+		//	{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	// Walls fourth face
+		//	{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		//	{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		
+		//	// Box first face
+		//	{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+		//	{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+		//	// Box second face
+		//	{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+		//	{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+		//	// Box third face
+		//	{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+		//	{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+		//	// Box fourth face
+		//	{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+		//	{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+		//	// Box fifth face
+		//	{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+		//	{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
+		//};
 
-		g_ground = { 0, { 1, 1, 1 }, 0.1, 0.5, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
+		g_ground = { 0, { { 1, 1, 1 }, 0.1, 0.5 }, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
 
 		return true;
 	}
@@ -132,7 +136,7 @@ public:
 					g_pixels[SCREEN_WIDTH * screenY + screenX] = ZERO_VEC3D;
 					g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
-					RenderGround(g_player.coords, v_newDirection, screenX, screenY);
+					//RenderGround(g_player.coords, v_newDirection, screenX, screenY);
 
 					RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
@@ -164,7 +168,7 @@ public:
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 		{
-			v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.emittance, g_ground.reflectance, { 0, 1, 0 }, v_intersection, 0);
+			v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.material.emittance, g_ground.material.reflectance, { 0, 1, 0 }, v_intersection, 0);
 
 			g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 			g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -230,7 +234,7 @@ public:
 		// Proof that the ConusProduct is the most useful function
 
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.material.tint);
 
 		return true;
 	}
@@ -299,7 +303,7 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
-				v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_spheres[i].emittance, g_spheres[i].reflectance, v_surfaceNormal, v_intersection, 0);
+				v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_spheres[i].material.emittance, g_spheres[i].material.reflectance, v_surfaceNormal, v_intersection, 0);
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -408,7 +412,7 @@ public:
 		}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.material.tint);
 
 		return true;
 	}
@@ -458,7 +462,7 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
-				v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_triangles[i].emittance, g_triangles[i].reflectance, v_surfaceNormal, v_intersection, 0);
+				v_intersectionColor = CalculateLighting_PathTracing(v_intersectionColor, g_triangles[i].material.emittance, g_triangles[i].material.reflectance, v_surfaceNormal, v_intersection, 0);
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -532,8 +536,8 @@ public:
 
 		*v_intersectionColor = WHITE_COLOR;
 
-		if (triangle.texture != nullptr)
-		{
+		//if (triangle.texture != nullptr)
+		//{
 			// from here on we calculate the texture coordinates
 
 			Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
@@ -559,10 +563,10 @@ public:
 			olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
 
 			*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
-		}
+		//}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.material.tint);
 		
 		return true;
 	}
@@ -735,7 +739,7 @@ public:
 
 			if (intersectionExists && b_rayIsBlocked == false)
 			{
-				Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_spheres[i].emittance, g_spheres[i].reflectance, v_normal, v_intersection, i_bounceCount + 1);
+				Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_spheres[i].material.emittance, g_spheres[i].material.reflectance, v_normal, v_intersection, i_bounceCount + 1);
 
 				AddToVec3D(
 					&v_outgoingLightColor,
@@ -761,7 +765,7 @@ public:
 
 			if (intersectionExists && b_rayIsBlocked == false)
 			{
-				Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_triangles[i].emittance, g_triangles[i].reflectance, v_normal, v_intersection, i_bounceCount + 1);
+				Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_triangles[i].material.emittance, g_triangles[i].material.reflectance, v_normal, v_intersection, i_bounceCount + 1);
 
 				AddToVec3D(
 					&v_outgoingLightColor,
@@ -788,7 +792,7 @@ public:
 
 		if (intersectionExists && b_rayIsBlocked == false)
 		{
-			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.emittance, g_ground.reflectance, v_normal, v_intersection, i_bounceCount + 1);
+			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(v_intersectionColor, g_ground.material.emittance, g_ground.material.reflectance, v_normal, v_intersection, i_bounceCount + 1);
 
 			AddToVec3D(
 				&v_outgoingLightColor,
@@ -844,7 +848,7 @@ public:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 4, 4))
 		rayTracer.Start();
 	return 0;
 }
