@@ -9,6 +9,14 @@ struct Player
 	float FOV;
 };
 
+struct Material
+{
+	Vec3D tint;
+	float emittance;
+	float reflectance;
+	std::string name = ""; // Used for scene grouping in OBJ-files
+};
+
 struct Sphere
 {
 	Vec3D coords;
@@ -36,12 +44,4 @@ struct Ground
 	Vec2D textureCorner1 = { 0, 0 };
 	Vec2D textureCorner2 = { 1, 1 };
 	float textureScalar = 1;
-};
-
-struct Material
-{
-	Vec3D tint;
-	float emittance;
-	float reflectance;
-	std::string name = ""; // Used for scene grouping in OBJ-files
 };

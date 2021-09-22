@@ -16,25 +16,25 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 	return tokens;
 }
 
-void ParseMTL(std::string filePath, std::string mtlName, std::vector<Triangle>* scene)
+void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* scene)
 {
 	// Use same file path for MTL-file but without the file name of the OBJ-file
-	std::vector<std::string> splitPath = split(filePath, '/');
+	std::vector<std::string> splitPath = split(objPath, '/');
 	splitPath.pop_back();
-	std::string newFilePath;
+	std::string assetsPath;
 	for (std::string s : splitPath)
 	{
-		newFilePath += s + '/';
+		assetsPath += s + '/';
 	}
-	newFilePath += mtlName;
+	std::string mtlPath = assetsPath + mtlName;
 
 	// Start opening file
 	std::ifstream file;
-	file.open(filePath, std::ios::in);
+	file.open(mtlPath, std::ios::in);
 
 	if (!file.is_open()) // If file opening failed
 	{
-		std::cout << "Could not find MTL-file in same folder as OBJ-file located in: " << filePath << std::endl;
+		std::cout << "Could not find MTL-file in same folder as OBJ-file located in: " << mtlPath << std::endl;
 		return;
 	}
 
@@ -44,6 +44,7 @@ void ParseMTL(std::string filePath, std::string mtlName, std::vector<Triangle>* 
 	{
 		std::string materialName;
 		Vec3D tint;
+		olc::Sprite* texture;
 
 		while (getline(file, line)) // Jumps to new line every loop
 		{
@@ -54,6 +55,10 @@ void ParseMTL(std::string filePath, std::string mtlName, std::vector<Triangle>* 
 				if (values[0] == "Ka") // Tint
 				{
 					tint = { stof(values[1]), stof(values[2]), stof(values[3]) };
+				}
+				if (values[0] == "map_Kd") // Texture
+				{
+					texture = new olc::Sprite(assetsPath + values[1]);
 				}
 				else if (values[0] == "newmtl") // New group
 				{
@@ -67,13 +72,14 @@ void ParseMTL(std::string filePath, std::string mtlName, std::vector<Triangle>* 
 				}
 			}
 		}
-
+		
 		// Goes through every triangle and adds the material data if they belonged in the group
-		for (Triangle t : *scene)
+		for (int i = 0; i < scene->size(); i++)
 		{
-			if (t.material.name == materialName)
+			if (scene->at(i).material.name == materialName)
 			{
-				t.material.tint = tint;
+				scene->at(i).material.tint = tint;
+				scene->at(i).texture = texture;
 			}
 		}
 
@@ -81,7 +87,7 @@ void ParseMTL(std::string filePath, std::string mtlName, std::vector<Triangle>* 
 	}
 }
 
-void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float scale = 1, Vec3D v_displacement = { 0, 0, 0 }, olc::Sprite* texture = nullptr)
+void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float scale = 1, Vec3D v_displacement = { 0, 0, 0 })
 {
 	std::ifstream file;
 	file.open(filePath, std::ios::in);
@@ -138,8 +144,10 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 					});
 				else
 					scene.push_back({
-						{ { VecScalarMultiplication3D(vertices[stof(vertex1[0]) - 1], scale) }, { VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale) }, { VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale) } }, // Vertices
-						{ { 1, 1, 1 }, 0.1, 0.4, materialName }, texture, // Material data
+						{ { AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex1[0]) - 1], scale), v_displacement) },
+						{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
+						{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) } }, // Vertices
+						{ { 1, 1, 1 }, 0.3, 0.4, materialName }, nullptr, // Material data
 						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } } // Texture coordinates
 					});
 #else

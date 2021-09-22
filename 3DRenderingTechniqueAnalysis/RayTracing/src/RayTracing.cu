@@ -1,7 +1,7 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
 #define SCREEN_WIDTH 300
-#define SCREEN_HEIGHT 250
+#define SCREEN_HEIGHT 200
 #define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
@@ -54,47 +54,46 @@ public:
 		g_player = { { 1.5, 1.5, -1.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
 
 		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
-		olc::Sprite* g_bananaTexture = new olc::Sprite("../Assets/Banana_texture.png");
 
 		g_spheres = 
 		{
-			{ { 1.5, 3, 1.5 }, 0.5, { { 0.965, 0.795, 0.3333 }, 20, 0 } }
-			//{ { 2.3, 0.3, 0.7 }, 0.3, { 1, 1, 1 }, 0.1, 0.2, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
+			{ { 1.5, 3, 1.5 }, 0.5, { { 0.965, 0.795, 0.3333 }, 20, 0 } },
+			//{ { 2.3, 0.3, 0.7 }, 0.3, { { 1, 1, 1 }, 0.1, 0.2 }, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
 		};
 
-		ImportScene(&g_triangles, "../Assets/Banana.obj", 100, {}, g_bananaTexture);
-
-		//g_triangles =
-		//{
-		//	// Walls first face
-		//	{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	// Walls second face
-		//	{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	// Walls third face
-		//	{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	// Walls fourth face
-		//	{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-		//	{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+		g_triangles =
+		{
+			// Walls first face
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0.8, 1.2, 0.8 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls second face
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0.8, 1.1, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls third face
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 1.1, 0.8, 1.1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			// Walls fourth face
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 1, 1, 1 }, 0.1, 0.3 }, g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } }
 		
-		//	// Box first face
-		//	{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-		//	{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-		//	// Box second face
-		//	{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-		//	{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-		//	// Box third face
-		//	{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-		//	{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-		//	// Box fourth face
-		//	{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-		//	{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
-		//	// Box fifth face
-		//	{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-		//	{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
-		//};
+			// Box first face
+			//{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			//{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			//// Box second face
+			//{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			//{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			//// Box third face
+			//{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			//{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			//// Box fourth face
+			//{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			//{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			//// Box fifth face
+			//{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			//{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
+		};
+
+		ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
 
 		g_ground = { 0, { { 1, 1, 1 }, 0.1, 0.5 }, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
 
@@ -136,7 +135,7 @@ public:
 					g_pixels[SCREEN_WIDTH * screenY + screenX] = ZERO_VEC3D;
 					g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = INFINITY;
 
-					//RenderGround(g_player.coords, v_newDirection, screenX, screenY);
+					RenderGround(g_player.coords, v_newDirection, screenX, screenY);
 
 					RenderSpheres(g_player.coords, v_newDirection, screenX, screenY);
 
@@ -159,12 +158,10 @@ public:
 	void RenderGround(Vec3D v_start, Vec3D v_direction, int screenX, int screenY)
 	{
 		Vec3D v_intersectionColor = ZERO_VEC3D;
-
-		bool intersectionExists;
 		Vec3D v_intersection = ZERO_VEC3D;
 		float depth = 0;
 
-		intersectionExists = GroundIntersection_RT(v_start, v_direction, &v_intersection, &v_intersectionColor, &depth);
+		bool intersectionExists = GroundIntersection_RT(v_start, v_direction, &v_intersection, &v_intersectionColor, &depth);
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 		{
@@ -223,7 +220,7 @@ public:
 			if (t1 < 0) t1 += 1;
 			if (t2 < 0) t2 += 1;
 
-			olc::Pixel texelColor = g_textureAtlas->Sample(
+			olc::Pixel texelColor = g_ground.texture->Sample(
 				Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1),
 				Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2)
 			);
@@ -275,7 +272,7 @@ public:
 				if (textureX < 0) textureX += 1;
 				if (textureY < 0) textureY += 1;
 
-				olc::Pixel texelColor = g_textureAtlas->Sample(textureX, textureY);
+				olc::Pixel texelColor = g_ground.texture->Sample(textureX, textureY);
 
 				*pixelColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 
@@ -536,8 +533,8 @@ public:
 
 		*v_intersectionColor = WHITE_COLOR;
 
-		//if (triangle.texture != nullptr)
-		//{
+		if (triangle.texture != nullptr)
+		{
 			// from here on we calculate the texture coordinates
 
 			Vec2D v_textureTriangleEdge1 = SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]);
@@ -560,10 +557,10 @@ public:
 			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
 			AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-			olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+			olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 			*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
-		//}
+		}
 		
 		// Tint the color
 		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.material.tint);
@@ -673,7 +670,7 @@ public:
 				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
 				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-				olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+				olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				*pixelColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 
@@ -848,7 +845,7 @@ public:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 4, 4))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
 		rayTracer.Start();
 	return 0;
 }
