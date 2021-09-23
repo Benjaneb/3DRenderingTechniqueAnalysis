@@ -1,5 +1,6 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
+#define ASYNC = 0
 #define SCREEN_WIDTH 300
 #define SCREEN_HEIGHT 200
 #define RENDER_DISTANCE 50
@@ -12,6 +13,7 @@
 
 #include <iostream>
 #include <random>
+#include <future>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "olcPixelGameEngine.h"
@@ -49,9 +51,12 @@ public:
 	}
 
 public:
+
 	bool OnUserCreate() override
 	{
-		g_player = { { 1.5, 1.5, -1.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
+		Timer timer("Loading in the scene");
+
+		g_player = { { 1.5, 1.5, -2.5 }, { 1, ZERO_VEC3D }, TAU * 0.25f };
 
 		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
 
@@ -93,8 +98,12 @@ public:
 			//{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 1, 1, 1 }, 0.1, 0.4 }, g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
 		};
 
-		ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
-
+		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
+#ifdef ASYNC == 1
+		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
+#else
+		ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
+#endif
 		g_ground = { 0, { { 1, 1, 1 }, 0.1, 0.5 }, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 1 };
 
 		return true;
@@ -102,22 +111,30 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
+		Timer timer("Rendering");
 		Controlls(fElapsedTime);
-		RayTracing();
-
+#ifdef ASYNC == 1
+		// Screen split up into 4 quadrants running in parallell on seperate threads
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, 0 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, 0 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT / 2 }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, SCREEN_HEIGHT / 2 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT }));
+#else
+		RayTracing({ 0, 0 }, { SCREEN_WIDTH, SCREEN_HEIGHT });
+#endif
 		return true;
 	}
 
 	// Defined in Controlls.h
 	void Controlls(float fElapsedTime);
 
-	void RayTracing()
+	void RayTracing(Vec2D screenStart, Vec2D screenEnd)
 	{
 		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
-		for (int y = -SCREEN_HEIGHT * 0.5f; y < SCREEN_HEIGHT * 0.5f; y++)
+		for (int y = screenStart.y - SCREEN_HEIGHT * 0.5f; y < screenEnd.y - SCREEN_HEIGHT * 0.5f; y++)
 		{
-			for (int x = -SCREEN_WIDTH * 0.5f; x < SCREEN_WIDTH * 0.5f; x++)
+			for (int x = screenStart.x - SCREEN_WIDTH * 0.5f; x < screenEnd.x - SCREEN_WIDTH * 0.5f; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
@@ -309,8 +326,8 @@ public:
 	}
 
 	// Ray tracing for spheres
-	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction,
-		Vec3D* v_intersection = nullptr, Vec3D* v_intersectionColor = nullptr, float* depth = nullptr, Vec3D* v_surfaceNormal = nullptr)
+	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr,
+		Vec3D* v_intersectionColor = nullptr, float* depth = nullptr, Vec3D* v_surfaceNormal = nullptr)
 	{
 		float dxdz = v_direction.x / v_direction.z;
 		float dydz = v_direction.y / v_direction.z;
@@ -579,6 +596,7 @@ public:
 		return AddVec3D(VecScalarMultiplication3D(v_direction, f_scalingFactor), v_start);
 	}
 
+	// Ray marching for triangles
 	/*bool TriangleIntersection_RM(Triangle triangle, Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection = nullptr, float* depth = nullptr, Vec3D* pixelColor = nullptr)
 	{
 		Vec3D v_triangleEdge1 = SubtractVec3D(triangle.vertices[1], triangle.vertices[0]);

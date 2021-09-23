@@ -2,6 +2,8 @@
 #include <fstream>
 #include "WorldDatatypes.h"
 
+std::mutex trianglesMutex;
+
 std::vector<std::string> split(const std::string& s, char delimiter)
 {
 	std::vector<std::string> tokens;
@@ -177,6 +179,8 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 	file.close();
 
 	ParseMTL(filePath, mtlName, &scene);
+
+	std::lock_guard<std::mutex> lock(trianglesMutex);
 
 	triangles->insert(triangles->end(), scene.begin(), scene.end());
 }
