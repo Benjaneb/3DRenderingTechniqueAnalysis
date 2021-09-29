@@ -348,3 +348,5 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/3DRenderingTechniqueAnalysis/Assets/BananaLow_OBJ.mtl
+/3DRenderingTechniqueAnalysis/Assets/Banana_D01.png

@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"
 
@@ -61,4 +62,25 @@ struct Ground
 	Vec2D normalMapCorner1 = { 0, 0 };
 	Vec2D normalMapCorner2 = { 1, 1 };
 	float textureScalar = 1;
+};
+
+struct Timer
+{
+	std::chrono::time_point<std::chrono::steady_clock> start, end;
+	std::chrono::duration<float> duration;
+	std::string task;
+
+	Timer(std::string _task)
+	{
+		start = std::chrono::high_resolution_clock::now();
+		task = _task;
+	}
+
+	~Timer()
+	{
+		end = std::chrono::high_resolution_clock::now();
+		duration = end - start;
+		float ms = duration.count() * 1000.0f;
+		std::cout << task << " took: " << ms << "ms" << std::endl;
+	}
 };

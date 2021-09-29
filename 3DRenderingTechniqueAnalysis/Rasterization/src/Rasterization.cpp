@@ -1,4 +1,5 @@
 #define OLC_PGE_APPLICATION
+#define RASTERIZER
 #include <iostream>
 #include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"

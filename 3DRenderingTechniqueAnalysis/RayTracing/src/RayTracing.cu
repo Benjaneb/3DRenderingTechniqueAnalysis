@@ -1,4 +1,6 @@
 #define OLC_PGE_APPLICATION
+#define RAY_TRACER
+#define ASYNC = 0
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define RENDER_DISTANCE 50
@@ -11,11 +13,13 @@
 
 #include <iostream>
 #include <random>
+#include <future>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
+#include "ParseOBJ.h"
 
 // Global variables
 
@@ -48,6 +52,7 @@ public:
 	}
 
 public:
+
 	bool OnUserCreate() override
 	{
 		g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
@@ -97,6 +102,12 @@ public:
 			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
 		};
 
+		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
+#ifdef ASYNC == 1
+		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
+#else
+		ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
+#endif
 		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_textureAtlas, nullptr, { 0, 0.5 }, { 0.5, 1 }, 3 };
 
 		return true;
@@ -104,22 +115,30 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
+		Timer timer("Rendering");
 		Controlls(fElapsedTime);
-		RayTracing();
-
+#ifdef ASYNC == 1
+		// Screen split up into 4 quadrants running in parallell on seperate threads
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, 0 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, 0 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT / 2 }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, SCREEN_HEIGHT / 2 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT }));
+		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT }));
+#else
+		RayTracing({ 0, 0 }, { SCREEN_WIDTH, SCREEN_HEIGHT });
+#endif
 		return true;
 	}
 
 	// Defined in Controlls.h
 	void Controlls(float fElapsedTime);
 
-	void RayTracing()
+	void RayTracing(Vec2D screenStart, Vec2D screenEnd)
 	{
 		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
-		for (int y = -SCREEN_HEIGHT * 0.5f; y < SCREEN_HEIGHT * 0.5f; y++)
+		for (int y = screenStart.y - SCREEN_HEIGHT * 0.5f; y < screenEnd.y - SCREEN_HEIGHT * 0.5f; y++)
 		{
-			for (int x = -SCREEN_WIDTH * 0.5f; x < SCREEN_WIDTH * 0.5f; x++)
+			for (int x = screenStart.x - SCREEN_WIDTH * 0.5f; x < screenEnd.x - SCREEN_WIDTH * 0.5f; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
@@ -255,7 +274,7 @@ public:
 		// Proof that the ConusProduct is the most useful function
 
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.material.tint);
 
 		return true;
 	}
@@ -296,7 +315,7 @@ public:
 				if (textureX < 0) textureX += 1;
 				if (textureY < 0) textureY += 1;
 
-				olc::Pixel texelColor = g_textureAtlas->Sample(textureX, textureY);
+				olc::Pixel texelColor = g_ground.texture->Sample(textureX, textureY);
 
 				*pixelColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 
@@ -461,7 +480,7 @@ public:
 		}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.material.tint);
 
 		return true;
 	}
@@ -608,7 +627,7 @@ public:
 				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]), triangleEdgeScalars.y));
 				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-				olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+			olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 			}
@@ -676,7 +695,7 @@ public:
 		}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.material.tint);
 		
 		return true;
 	}
@@ -783,7 +802,7 @@ public:
 				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(v_textureTriangleEdge2, triangleEdgeScalars.y));
 				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-				olc::Pixel texelColor = g_textureAtlas->Sample(textureCoordinates.x, textureCoordinates.y);
+				olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				*pixelColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 
@@ -979,7 +998,7 @@ public:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
 		rayTracer.Start();
 	return 0;
 }
