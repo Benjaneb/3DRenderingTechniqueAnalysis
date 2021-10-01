@@ -997,6 +997,24 @@ public:
 		// The ray is not blocked
 		return false;
 	}
+
+	void Refraction(Vec3D v_direction, Vec3D v_intersection, Vec3D v_normal, float refractionIndex)
+	{
+
+	}
+
+	Vec3D RefractRay(Vec3D v_incomingDirection, Vec3D v_normal, float refractionIndex1, float refractionIndex2)
+	{
+		float sinOutgoingAngle = refractionIndex1 * -DotProduct3D(v_incomingDirection, v_normal) / refractionIndex2;
+		float cosOutgoingAngle = sqrt(1 - sinOutgoingAngle * sinOutgoingAngle);
+		
+		Vec3D v_tangent = CrossProduct(v_normal, CrossProduct(v_normal, v_incomingDirection));
+
+		return AddVec3D(
+			VecScalarMultiplication3D(v_normal, -sinOutgoingAngle),
+			VecScalarMultiplication3D(v_tangent, cosOutgoingAngle)
+		);
+	}
 };
 
 int main()
