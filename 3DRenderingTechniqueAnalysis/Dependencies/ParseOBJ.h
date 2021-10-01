@@ -1,6 +1,13 @@
 #pragma once
 #include <fstream>
-#include "WorldDatatypes.h"
+
+// material information about a specific part of a mesh. For example, the legs of a chair
+struct MeshPart
+{
+	Material material;
+	std::string name;
+	olc::Sprite* normalMap = nullptr;
+};
 
 std::mutex trianglesMutex;
 
@@ -18,7 +25,7 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 	return tokens;
 }
 
-void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* scene)
+void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* scene, std::vector<MeshPart> meshParts)
 {
 	// Use same file path for MTL-file but without the file name of the OBJ-file
 	std::vector<std::string> splitPath = split(objPath, '/');
@@ -44,7 +51,7 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 
 	while (true)
 	{
-		std::string materialName;
+		std::string meshPartName;
 		Vec3D tint;
 		olc::Sprite* texture;
 
@@ -64,24 +71,36 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 				}
 				else if (values[0] == "newmtl") // New group
 				{
-					if (materialName != "") // Go back to previous line and break if it reaches a new group while already parsing one
+					if (meshPartName != "") // Go back to previous line and break if it reaches a new group while already parsing one
 					{
 						file.seekg(-1, std::ios::cur);
 						break;
 					}
 
-					materialName = values[1];
+					meshPartName = values[1];
 				}
 			}
 		}
-		
+
+		MeshPart meshPart;
+
+		for (int i = 0; i < meshParts.size(); i++)
+		{
+			if (meshParts[i].name == meshPartName)
+			{
+				meshPart = meshParts[i];
+			}
+		}
+
 		// Goes through every triangle and adds the material data if they belonged in the group
 		for (int i = 0; i < scene->size(); i++)
 		{
-			if (scene->at(i).material.name == materialName)
+			if (scene->at(i).meshPartName == meshPartName)
 			{
-				scene->at(i).material.tint = tint;
+				scene->at(i).tint = tint;
 				scene->at(i).texture = texture;
+				scene->at(i).material = meshPart.material;
+				scene->at(i).normalMap = meshPart.normalMap;
 			}
 		}
 
@@ -89,7 +108,7 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 	}
 }
 
-void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float scale = 1, Vec3D v_displacement = { 0, 0, 0 })
+void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::vector<MeshPart> meshParts, Vec3D v_displacement = ZERO_VEC3D, float scale = 1)
 {
 	std::ifstream file;
 	file.open(filePath, std::ios::in);
@@ -105,10 +124,10 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 
 	std::vector<Vec3D> vertices;
 	std::vector<Vec2D> textureCoords;
-	std::vector<Vec3D> normals;
+	//std::vector<Vec3D> normals;
 
 	std::string mtlName;
-	std::string materialName;
+	std::string meshPartName;
 
 	// Gather coordinate data
 	while (getline(file, line)) // Jumps to new line every loop
@@ -125,10 +144,10 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 			{
 				textureCoords.push_back({ stof(values[1]), stof(values[2]) });
 			}
-			else if (values[0] == "vn") // Normal
+			/*else if (values[0] == "vn") // Normal
 			{
 				normals.push_back({ stof(values[1]), stof(values[2]), stof(values[3]) });
-			}
+			}*/
 			else if (values[0] == "f") // Indicies of vertex info
 			{
 				std::vector<std::string> values = split(line, ' ');
@@ -140,17 +159,32 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 #ifdef RAY_TRACER
 				// Ray tracer
 				if (vertex1.size() == 1) // Check if triangle has texture coordinates
-					scene.push_back({
-						{ { vertices[stof(vertex1[0]) - 1] }, { vertices[stof(vertex2[0]) - 1] }, { vertices[stof(vertex3[0]) - 1] } }, // Vertices
-						{ { 1, 1, 1 }, 0.1, 0.4, materialName } // Material data
+					scene.push_back(
+					{
+						{ 
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex1[0]) - 1], scale), v_displacement) },
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
+						}, // Vertices
+						{ 1, 1, 1 }, // tint
+						STANDARD_MATERIAL, // Material data
+						meshPartName,
 					});
 				else
-					scene.push_back({
-						{ { AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex1[0]) - 1], scale), v_displacement) },
-						{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
-						{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) } }, // Vertices
-						{ { 1, 1, 1 }, 0.3, 0.4, materialName }, nullptr, // Material data
-						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } } // Texture coordinates
+					scene.push_back(
+					{
+						{
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex1[0]) - 1], scale), v_displacement) },
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
+							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
+						}, // Vertices
+						{ 1, 1, 1 }, // tint
+						STANDARD_MATERIAL, // Material data
+						meshPartName,
+						nullptr, // Texture, set to nullptr for now
+						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } }, // Texture vertices
+						nullptr, // Normal map, set to nullptr for now
+						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } } // Normal map vertices
 					});
 #else
 				// Rasterizer
@@ -171,14 +205,14 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, float s
 			}
 			else if (values[0] == "usemtl")
 			{
-				materialName = values[1];
+				meshPartName = values[1];
 			}
 		}
 	}
 
 	file.close();
 
-	ParseMTL(filePath, mtlName, &scene);
+	ParseMTL(filePath, mtlName, &scene, meshParts);
 
 	std::lock_guard<std::mutex> lock(trianglesMutex);
 

@@ -1,13 +1,13 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define ASYNC = 0
+//#define ASYNC
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
 #define MAX_BOUNCES 3
-#define SAMPLES_PER_PIXEL 200
+#define SAMPLES_PER_PIXEL 300
 #define SAMPLES_PER_RAY 1
 #define WHITE_COLOR { 255, 255, 255 }
 
@@ -67,48 +67,48 @@ public:
 			// Glossy ball
 			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { GLOSSY, 0.1, 0.75, 0.05 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.4 }, g_textureAtlas, g_normalMap, { 0.5, 0.5 }, { 1, 1 }, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) }
+			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.4 }, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_normalMap, { 0, 0 }, { 1, 1 } }
 		};
 
 		g_triangles =
 		{
 			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
 			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
 			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
 			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
 
 			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
 			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
 			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
 			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
 			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.3 }, g_textureAtlas, nullptr, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
 		};
 
 		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
-#ifdef ASYNC == 1
+#ifdef ASYNC
 		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
 #else
-		ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
+		//ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
 #endif
-		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_textureAtlas, nullptr, { 0, 0.5 }, { 0.5, 1 }, 3 };
+		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 3 };
 
 		return true;
 	}
@@ -117,7 +117,8 @@ public:
 	{
 		Timer timer("Rendering");
 		Controlls(fElapsedTime);
-#ifdef ASYNC == 1
+
+#ifdef ASYNC
 		// Screen split up into 4 quadrants running in parallell on seperate threads
 		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, 0 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }));
 		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, 0 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT / 2 }));
@@ -267,14 +268,15 @@ public:
 					Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2)
 				);
 
-				*v_surfaceNormal = ReturnNormalizedVec3D({ float(normalMapColor.r), float(normalMapColor.g), float(normalMapColor.b) });
+				// Converting the color in the normalMap to an actual unit vector
+				*v_surfaceNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
 			}
 		}
 
 		// Proof that the ConusProduct is the most useful function
 
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.material.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, g_ground.tint);
 
 		return true;
 	}
@@ -461,7 +463,8 @@ public:
 
 				olc::Pixel normalMapColor = sphere.normalMap->Sample(normalMapX, normalMapY);
 
-				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r), float(normalMapColor.g), float(normalMapColor.b) });
+				// Converting the color in the normalMap to an actual unit vector
+				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
 
 				// Calculating tangents of the sphere at the intersection point
 				Vec3D v_sidewaysTangent = ReturnNormalizedVec3D({ -v_normal.z, 0, v_normal.x });
@@ -480,7 +483,7 @@ public:
 		}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.material.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, sphere.tint);
 
 		return true;
 	}
@@ -627,7 +630,7 @@ public:
 				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]), triangleEdgeScalars.y));
 				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
 
-			olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
+				olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 			}
@@ -641,7 +644,8 @@ public:
 
 				olc::Pixel normalMapColor = triangle.normalMap->Sample(normalMapCoordinates.x, normalMapCoordinates.y);
 
-				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r), float(normalMapColor.g), float(normalMapColor.b) });
+				// Converting the color in the normalMap to an actual unit vector
+				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
 
 				// Calculating tangents of the triangle for finding the normal in object space
 
@@ -695,7 +699,7 @@ public:
 		}
 		
 		// Tint the color
-		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.material.tint);
+		*v_intersectionColor = ConusProduct(*v_intersectionColor, triangle.tint);
 		
 		return true;
 	}
@@ -828,7 +832,7 @@ public:
 		return Distance3D(v_point, v_closestPoint);
 	}*/
 
-	Vec3D CalculateLighting_PathTracing(Vec3D v_objectColor, MaterialProperties material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
+	Vec3D CalculateLighting_PathTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
 	{
 		Vec3D v_outgoingLightColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
 
@@ -998,7 +1002,7 @@ public:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
 		rayTracer.Start();
 	return 0;
 }
