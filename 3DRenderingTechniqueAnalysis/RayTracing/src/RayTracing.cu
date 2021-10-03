@@ -1,13 +1,13 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-//#define ASYNC
+#define ASYNC 0
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
 #define MAX_BOUNCES 3
-#define SAMPLES_PER_PIXEL 300
+#define SAMPLES_PER_PIXEL 10
 #define SAMPLES_PER_RAY 1
 #define WHITE_COLOR { 255, 255, 255 }
 
@@ -33,8 +33,12 @@ std::vector<Triangle> g_triangles;
 
 Ground g_ground;
 
-olc::Sprite* g_textureAtlas;
-olc::Sprite* g_normalMap;
+olc::Sprite* g_basketball_texture;
+olc::Sprite* g_planks_texture;
+olc::Sprite* g_concrete_texture;
+olc::Sprite* g_tiledfloor_texture;
+
+olc::Sprite* g_basketball_normalmap;
 
 std::default_random_engine randEngine;
 
@@ -57,8 +61,12 @@ public:
 	{
 		g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
 
-		g_textureAtlas = new olc::Sprite("../Assets/textureAtlas.png");
-		g_normalMap = new olc::Sprite("../Assets/testNormalMap.png");
+		g_basketball_texture = new olc::Sprite("../Assets/basketball.png");
+		g_planks_texture = new olc::Sprite("../Assets/planks.png");
+		g_concrete_texture = new olc::Sprite("../Assets/concrete.png");
+		g_tiledfloor_texture = new olc::Sprite("../Assets/tiledfloor.png");
+
+		g_basketball_normalmap = new olc::Sprite("../Assets/basketball_normalmap.png");
 
 		g_spheres = 
 		{
@@ -67,48 +75,48 @@ public:
 			// Glossy ball
 			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { GLOSSY, 0.1, 0.75, 0.05 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.4 }, g_textureAtlas, { 0.5, 0.5 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_normalMap, { 0, 0 }, { 1, 1 } }
+			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.4 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap }
 		};
 
 		g_triangles =
 		{
 			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0.5, 0.5 }, { 0.5, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0, 0 }, { 0.5, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_textureAtlas, { { 0, 0.5 }, { 0.5, 0 }, { 0.5, 0.5 } } }
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } }
 		};
 
 		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
-#ifdef ASYNC
+#if ASYNC == 1
 		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
 #else
 		//ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
 #endif
-		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_textureAtlas, { 0, 0.5 }, { 0.5, 1 }, 3 };
+		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1 };
 
 		return true;
 	}
@@ -118,7 +126,7 @@ public:
 		Timer timer("Rendering");
 		Controlls(fElapsedTime);
 
-#ifdef ASYNC
+#if ASYNC == 1
 		// Screen split up into 4 quadrants running in parallell on seperate threads
 		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ 0, 0 }), Vec2D({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }));
 		std::async(std::launch::async, &Engine::RayTracing, this, Vec2D({ SCREEN_WIDTH / 2, 0 }), Vec2D({ SCREEN_WIDTH, SCREEN_HEIGHT / 2 }));
@@ -248,25 +256,22 @@ public:
 			float t1 = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
 			float t2 = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
 
-			// if the textureCoordinates are negative, we need to flip them around the center of the texture and make them positive
+			// if the t values are negative, we need to flip them around the center of the texture and make them positive
 			if (t1 < 0) t1 += 1;
 			if (t2 < 0) t2 += 1;
 
+			float textureX = Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1);
+			float textureY = Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2);
+
 			if (g_ground.texture != nullptr)
 			{
-				olc::Pixel texelColor = g_ground.texture->Sample(
-					Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1),
-					Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2)
-				);
+				olc::Pixel texelColor = g_ground.texture->Sample(textureX, textureY);
 
 				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 			}
 			if (g_ground.normalMap != nullptr)
 			{
-				olc::Pixel normalMapColor = g_ground.normalMap->Sample(
-					Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1),
-					Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2)
-				);
+				olc::Pixel normalMapColor = g_ground.normalMap->Sample(textureX, textureY);
 
 				// Converting the color in the normalMap to an actual unit vector
 				*v_surfaceNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
@@ -446,22 +451,19 @@ public:
 			float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
 			float v = 0.5 - asin(v_normal.y) / PI;
 
+			float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
+			float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
+
 			if (sphere.texture != nullptr)
 			{
-				// Interpolate between assigned texture coordinates
-				float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
-				float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
-
+				// Interpolating between assigned texture coordinates
 				olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
 
 				*v_intersectionColor = { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
 			}
 			if (sphere.normalMap != nullptr)
 			{
-				float normalMapX = Lerp(sphere.normalMapCorner1.x, sphere.normalMapCorner2.x, u);
-				float normalMapY = Lerp(sphere.normalMapCorner1.y, sphere.normalMapCorner2.y, v);
-
-				olc::Pixel normalMapColor = sphere.normalMap->Sample(normalMapX, normalMapY);
+				olc::Pixel normalMapColor = sphere.normalMap->Sample(textureX, textureY);
 
 				// Converting the color in the normalMap to an actual unit vector
 				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
@@ -622,27 +624,21 @@ public:
 
 			Vec3D triangleEdgeScalars = VecMatrixMultiplication3D(v_intersectionRelativeToTriangle, InverseMatrix3D(triangleMatrix));
 
+			Vec2D textureCoordinates = { 0, 0 };
+
+			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]), triangleEdgeScalars.x));
+			AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]), triangleEdgeScalars.y));
+			AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
+
 			if (triangle.texture != nullptr)
 			{
-				Vec2D textureCoordinates = { 0, 0 };
-
-				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[1], triangle.textureVertices[0]), triangleEdgeScalars.x));
-				AddToVec2D(&textureCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.textureVertices[2], triangle.textureVertices[0]), triangleEdgeScalars.y));
-				AddToVec2D(&textureCoordinates, triangle.textureVertices[0]);
-
 				olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
 			}
 			if (triangle.normalMap != nullptr)
 			{
-				Vec2D normalMapCoordinates = { 0, 0 };
-
-				AddToVec2D(&normalMapCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.normalMapVertices[1], triangle.normalMapVertices[0]), triangleEdgeScalars.x));
-				AddToVec2D(&normalMapCoordinates, VecScalarMultiplication2D(SubtractVec2D(triangle.normalMapVertices[2], triangle.normalMapVertices[0]), triangleEdgeScalars.y));
-				AddToVec2D(&normalMapCoordinates, triangle.normalMapVertices[0]);
-
-				olc::Pixel normalMapColor = triangle.normalMap->Sample(normalMapCoordinates.x, normalMapCoordinates.y);
+				olc::Pixel normalMapColor = triangle.normalMap->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				// Converting the color in the normalMap to an actual unit vector
 				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
@@ -679,8 +675,8 @@ public:
 
 				Matrix3D m2 =
 				{
-					{ triangle.normalMapVertices[1].x - triangle.normalMapVertices[0].x, triangle.normalMapVertices[1].y - triangle.normalMapVertices[0].y, 0 },
-					{ triangle.normalMapVertices[2].x - triangle.normalMapVertices[0].x, triangle.normalMapVertices[2].y - triangle.normalMapVertices[0].y, 0 },
+					{ triangle.textureVertices[1].x - triangle.textureVertices[0].x, triangle.textureVertices[1].y - triangle.textureVertices[0].y, 0 },
+					{ triangle.textureVertices[2].x - triangle.textureVertices[0].x, triangle.textureVertices[2].y - triangle.textureVertices[0].y, 0 },
 					{ 0, 0, 1 }
 				};
 

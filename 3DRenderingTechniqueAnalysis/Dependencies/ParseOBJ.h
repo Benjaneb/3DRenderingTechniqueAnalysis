@@ -1,7 +1,7 @@
 #pragma once
 #include <fstream>
 
-// material information about a specific part of a mesh. For example, the legs of a chair
+// Material information about a specific part of a mesh. For example, the legs of a chair
 struct MeshPart
 {
 	Material material;
@@ -184,7 +184,6 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 						nullptr, // Texture, set to nullptr for now
 						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } }, // Texture vertices
 						nullptr, // Normal map, set to nullptr for now
-						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } } // Normal map vertices
 					});
 #else
 				// Rasterizer

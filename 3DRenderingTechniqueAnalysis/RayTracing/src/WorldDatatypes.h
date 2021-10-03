@@ -39,8 +39,6 @@ struct Sphere
 	Vec2D textureCorner2 = ZERO_VEC2D;
 	Quaternion rotQuaternion = IDENTITY_QUATERNION;
 	olc::Sprite* normalMap = nullptr;
-	Vec2D normalMapCorner1 = ZERO_VEC2D;
-	Vec2D normalMapCorner2 = ZERO_VEC2D;
 };
 
 struct Triangle
@@ -52,7 +50,6 @@ struct Triangle
 	olc::Sprite* texture = nullptr;
 	Vec2D textureVertices[3] = { ZERO_VEC2D, ZERO_VEC2D, ZERO_VEC2D };
 	olc::Sprite* normalMap = nullptr;
-	Vec2D normalMapVertices[3] = { ZERO_VEC2D, ZERO_VEC2D, ZERO_VEC2D };
 };
 
 struct Ground
@@ -65,8 +62,6 @@ struct Ground
 	Vec2D textureCorner2 = ZERO_VEC2D;
 	float textureScalar = 1;
 	olc::Sprite* normalMap = nullptr;
-	Vec2D normalMapCorner1 = ZERO_VEC2D;
-	Vec2D normalMapCorner2 = ZERO_VEC2D;
 };
 
 struct Timer
