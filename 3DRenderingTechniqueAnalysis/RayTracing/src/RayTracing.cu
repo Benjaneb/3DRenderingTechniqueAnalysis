@@ -1,13 +1,14 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
+#define PATH_TRACING 1
 #define ASYNC 0
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1000
+#define SCREEN_HEIGHT 750
 #define RENDER_DISTANCE 50
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
 #define MAX_BOUNCES 3
-#define SAMPLES_PER_PIXEL 10
+#define SAMPLES_PER_PIXEL 1
 #define SAMPLES_PER_RAY 1
 #define WHITE_COLOR { 255, 255, 255 }
 
@@ -37,8 +38,13 @@ olc::Sprite* g_basketball_texture;
 olc::Sprite* g_planks_texture;
 olc::Sprite* g_concrete_texture;
 olc::Sprite* g_tiledfloor_texture;
+olc::Sprite* g_worldmap_texture;
+olc::Sprite* g_gold_texture;
 
 olc::Sprite* g_basketball_normalmap;
+olc::Sprite* g_planks_normalmap;
+olc::Sprite* g_concrete_normalmap;
+olc::Sprite* g_tiledfloor_normalmap;
 
 std::default_random_engine randEngine;
 
@@ -65,17 +71,28 @@ public:
 		g_planks_texture = new olc::Sprite("../Assets/planks.png");
 		g_concrete_texture = new olc::Sprite("../Assets/concrete.png");
 		g_tiledfloor_texture = new olc::Sprite("../Assets/tiledfloor.png");
+		g_worldmap_texture = new olc::Sprite("../Assets/worldmap.png");
+		g_gold_texture = new olc::Sprite("../Assets/gold.png");
 
 		g_basketball_normalmap = new olc::Sprite("../Assets/basketball_normalmap.png");
+		g_planks_normalmap = new olc::Sprite("../Assets/planks_normalmap.png");
+		g_concrete_normalmap = new olc::Sprite("../Assets/concrete_normalmap.png");
+		g_tiledfloor_normalmap = new olc::Sprite("../Assets/tiledfloor_normalmap.png");
 
 		g_spheres = 
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { LAMBERTIAN, 15, 0 } },
+			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { LAMBERTIAN, 17, 0 } },
 			// Glossy ball
 			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { GLOSSY, 0.1, 0.75, 0.05 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.4 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap }
+			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.45 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
+			// World atlas globe
+			{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
+			// Magenta lightsource
+			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { LAMBERTIAN, 7.5, 0 } },
+			// Another glossy ball
+			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { GLOSSY, 0.1, 0.6, 0.2 } }
 		};
 
 		g_triangles =
@@ -94,21 +111,29 @@ public:
 			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } }
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+
+			// Lonely pyramid
+			{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
 		};
+
+		//ImportScene(&g_triangles, "../Assets/IsakBenjaminMunk.obj", { { { LAMBERTIAN, 0.7, 0.3 }, "Material" }, { { LAMBERTIAN, 0.7, 0.3 }, "Material.001" } }, { 1.5, 0.2, 1.5 });
 
 		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
 #if ASYNC == 1
@@ -116,7 +141,7 @@ public:
 #else
 		//ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
 #endif
-		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1 };
+		g_ground = { 0, { 1, 1, 1 }, { LAMBERTIAN, 0.1, 0.5 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 
 		return true;
 	}
@@ -145,9 +170,9 @@ public:
 	{
 		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
-		for (int y = screenStart.y - SCREEN_HEIGHT * 0.5f; y < screenEnd.y - SCREEN_HEIGHT * 0.5f; y++)
+		for (float y = screenStart.y - SCREEN_HEIGHT * 0.5f + 0.5f; y < screenEnd.y - SCREEN_HEIGHT * 0.5f + 0.5f; y++)
 		{
-			for (int x = screenStart.x - SCREEN_WIDTH * 0.5f; x < screenEnd.x - SCREEN_WIDTH * 0.5f; x++)
+			for (float x = screenStart.x - SCREEN_WIDTH * 0.5f + 0.5f; x < screenEnd.x - SCREEN_WIDTH * 0.5f + 0.5f; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
 				NormalizeVec3D(&v_direction);
@@ -182,6 +207,7 @@ public:
 
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
+			std::cout << int((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT * 100) << "%" << std::endl;
 		}
 	}
 
@@ -533,9 +559,13 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
+#if PATH_TRACING == 1
 				v_intersectionColor = CalculateLighting_PathTracing(
 					v_intersectionColor, g_triangles[i].material, v_surfaceNormal, v_direction, v_intersection, 0
 				);
+#else
+
+#endif
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -954,6 +984,11 @@ public:
 
 		// Nothing was hit
 		return v_outgoingLightColor;
+	}
+
+	Vec3D CalculateLightning_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
+	{
+
 	}
 
 	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)
