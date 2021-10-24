@@ -4,7 +4,7 @@
 // Material information about a specific part of a mesh. For example, the legs of a chair
 struct MeshPart
 {
-	Material material;
+	Material material = STANDARD_MATERIAL;
 	std::string name;
 	olc::Sprite* normalMap = nullptr;
 };

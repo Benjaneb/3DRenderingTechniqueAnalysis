@@ -1,6 +1,8 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
 
+//CUNT
+
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 0
 #define SCREEN_WIDTH 800
@@ -42,8 +44,13 @@ olc::Sprite* g_basketball_texture;
 olc::Sprite* g_planks_texture;
 olc::Sprite* g_concrete_texture;
 olc::Sprite* g_tiledfloor_texture;
+olc::Sprite* g_worldmap_texture;
+olc::Sprite* g_gold_texture;
 
 olc::Sprite* g_basketball_normalmap;
+olc::Sprite* g_planks_normalmap;
+olc::Sprite* g_concrete_normalmap;
+olc::Sprite* g_tiledfloor_normalmap;
 
 std::default_random_engine randEngine;
 
@@ -71,22 +78,34 @@ public:
 		g_planks_texture = new olc::Sprite("../Assets/planks.png");
 		g_concrete_texture = new olc::Sprite("../Assets/concrete.png");
 		g_tiledfloor_texture = new olc::Sprite("../Assets/tiledfloor.png");
+		g_worldmap_texture = new olc::Sprite("../Assets/worldmap.png");
+		g_gold_texture = new olc::Sprite("../Assets/gold.png");
 
 		g_basketball_normalmap = new olc::Sprite("../Assets/basketball_normalmap.png");
+		g_planks_normalmap = new olc::Sprite("../Assets/planks_normalmap.png");
+		g_concrete_normalmap = new olc::Sprite("../Assets/concrete_normalmap.png");
+		g_tiledfloor_normalmap = new olc::Sprite("../Assets/tiledfloor_normalmap.png");
 
-		g_spheres = 
+		g_spheres =
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 15, 0, 0, 1, 500, 6 } },
+			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6 } },
 			// Glossy ball
 			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.1, 0.3, 0.6, 1, 500, 6 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
-			// Refractive ball
-			//{ { 1.5, 2, 0.75 }, 0.75, { 0.8, 1, 1 }, { GLOSSY, 0.1, 0.462, 0.05, 0, 1 } },
+			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
+			// World atlas globe
+			{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.15, 0.3, 0.5, 1, 500, 6 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
+			// Magenta lightsource
+			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { 9, 0, 0, 1, 500, 6 } },
+			// Another glossy ball
+			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.1, 0.5, 0.9, 0.5, 500, 6 } }
 		};
 
 		float a = 1;
+
+		
+			
 
 		g_triangles =
 		{
@@ -104,42 +123,47 @@ public:
 			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
-			// Box second face
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			// Box first face
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 1 + 1.25, 3 - 1 - a }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 0 + 1.25, 3 - 1 - a }, { 1 + a, 1 + 1.25, 3 - 1 - a } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			// Box third face
-			{ { { 1, 0+1.25, 1-1 }, { 1, 1+1.25, 2-1 }, { 1, 1+1.25, 1-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0+1.25, 1-1 }, { 1, 0+1.25, 2-1 }, { 1, 1+1.25, 2-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			// Box fourth face							   
-			{ { { 2, 0+1.25, 1-1 }, { 2, 1+1.25, 1-1 }, { 2, 1+1.25, 2-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 2, 0+1.25, 1-1 }, { 2, 1+1.25, 2-1 }, { 2, 0+1.25, 2-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			// Box fifth face							   
-			{ { { 1, 1+1.25, 1-1 }, { 1, 1+1.25, 2-1 }, { 2, 1+1.25, 2-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 1+1.25, 1-1 }, { 2, 1+1.25, 2-1 }, { 2, 1+1.25, 1-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			// Box sixth face
-			{ { { 1, 0+1.25, 2-1 }, { 1, 0+1.25, 1-1 }, { 2, 0+1.25, 1-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0+1.25, 2-1 }, { 2, 0+1.25, 1-1 }, { 2, 0+1.25, 2-1 } }, { 0.8, 1, 1 }, { 0.4, 0, 0.9, 0.5, 0, b } }
-		};
+			// Refractive box first face
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			// Refractive box second face
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 1 + 1.25, 3 - 1 - a }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 0 + 1.25, 3 - 1 - a }, { 1 + a, 1 + 1.25, 3 - 1 - a } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			// Refractive ox third face
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 0 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			// Refractive box fourth face							   
+			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			// Refractive ox fifth face							   
+			{ { { 1, 1 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			// Refractive ox sixth face
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
 
-		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
+			// Lonely pyramid
+			{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
+	};
+
 #if ASYNC == 1
 		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
 #else
@@ -211,6 +235,7 @@ public:
 
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
+			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
 		}
 	}
 
@@ -567,8 +592,6 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
-				//std::cout << q_surfaceNormal.vecPart.x << " " << q_surfaceNormal.vecPart.y << " " << q_surfaceNormal.vecPart.z << std::endl;
-
 				v_intersectionColor = CalculateLighting_PathTracing(
 					v_intersectionColor, g_triangles[i].material, q_surfaceNormal, v_direction, v_intersection, 0
 				);
