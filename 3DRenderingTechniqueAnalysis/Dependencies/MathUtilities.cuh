@@ -69,6 +69,11 @@ float Lerp(float startValue, float endValue, float t)
 	return startValue + (endValue - startValue) * t;
 }
 
+float Square(float a)
+{
+	return a * a;
+}
+
 //
 // Methods for 2D vectors
 //
