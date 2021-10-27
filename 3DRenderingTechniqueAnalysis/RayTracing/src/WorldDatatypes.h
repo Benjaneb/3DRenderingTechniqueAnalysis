@@ -1,5 +1,5 @@
 #pragma once
-#define STANDARD_MATERIAL { 0.1, 0.3, 0.4, 1, 500, 5 }
+#define STANDARD_MATERIAL { 0.1, 0.3, 0.4, 1, 500, 5, 1 }
 
 #include <chrono>
 #include "olcPixelGameEngine.h"
@@ -17,9 +17,10 @@ struct Material
 	float emittance; // Measured from 0 to infinity
 	float minReflectance; // Measured from 0 to 1
 	float maxReflectance; // Measured from 0 to 1
-	float roughness; // Measured from 0 to 1
+	float reflectiveRoughness; // Measured from 0 to 1
 	float attenuation; // Measured from 0 to inf
 	float refractionIndex; // Measured from 0 to inf
+	float refractiveRoughness; // Measured from 0 to 1
 };
 
 struct Sphere

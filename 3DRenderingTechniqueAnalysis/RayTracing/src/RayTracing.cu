@@ -1,17 +1,15 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
 
-//CUNT
-
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 0
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define TOUCHING_DISTANCE 0.01f
-#define OFFSET_DISTANCE 0.002f
-#define MAX_BOUNCES 3
-#define SAMPLES_PER_PIXEL 150
-#define SAMPLES_PER_RAY 1
+#define OFFSET_DISTANCE 0.00001f
+#define MAX_BOUNCES 50
+#define SAMPLES_PER_PIXEL 10 // for path tracing
+#define SAMPLES_PER_RAY 1 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
 
@@ -89,23 +87,22 @@ public:
 		g_spheres =
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6 } },
+			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6, 1 } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6 } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6, 1 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
+			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6, 1 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
 			// World atlas globe
-			{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.15, 0.3, 0.5, 1, 500, 6 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
+			//{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.15, 0.3, 0.5, 1, 500, 6, 1 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
 			// Magenta lightsource
-			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { 9, 0, 0, 1, 500, 6 } },
+			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { 9, 0, 0, 1, 500, 6, 1 } },
 			// Another glossy ball
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.1, 0.5, 0.9, 0.5, 500, 6 } }
+			//{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.1, 0.5, 0.9, 0.5, 500, 6, 1 } },
+			// Refractibe BALLZ
+			{ { 1.5, 1.6, 0.35 }, 0.6, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.1, 0 } }
 		};
 
 		float a = 1;
-
-		
-			
 
 		g_triangles =
 		{
@@ -123,45 +120,45 @@ public:
 			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Refractive box first face
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			/*{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			// Refractive box second face
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 1 + 1.25, 3 - 1 - a }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 0 + 1.25, 3 - 1 - a }, { 1 + a, 1 + 1.25, 3 - 1 - a } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 1 + 1.25, 3 - 1 - a }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1 + a, 0 + 1.25, 3 - 1 - a }, { 1 + a, 1 + 1.25, 3 - 1 - a } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			// Refractive ox third face
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 0 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 0 + 1.25, 2 - 1 }, { 1, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			// Refractive box fourth face							   
-			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 2, 0 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			// Refractive ox fifth face							   
-			{ { { 1, 1 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 1 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 2 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			// Refractive ox sixth face
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 1, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
-			{ { { 1, 0 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 1, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
+			{ { { 1, 0 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },*/
 
 			// Lonely pyramid
-			{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
+			{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.7, 0.6, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
 	};
 
 #if ASYNC == 1
@@ -169,7 +166,7 @@ public:
 #else
 		//ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
 #endif
-		g_ground = { 0, { 1, 1, 1 }, { 0.1, 0.5, 0.75, 1, 500, 6 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1 };
+		g_ground = { 0, { 1, 1, 1 }, { 0.1, 0.5, 0.75, 1, 500, 6, 1 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1 };
 
 		return true;
 	}
@@ -235,7 +232,7 @@ public:
 
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
-			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
+			//std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
 		}
 	}
 
@@ -449,10 +446,6 @@ public:
 		Vec3D v_correctHit = dist1Closest ? v_alternative1 : v_alternative2;
 		Vec3D v_otherHit = dist1Closest ? v_alternative2 : v_alternative1;
 
-		// Calculating the normal of the sphere (without normalmap)
-		Vec3D v_normal = SubtractVec3D(v_correctHit, sphere.coords);
-		NormalizeVec3D(&v_normal);
-
 		// Check if the intersection is behind the ray. If so, choose the other one.
 		if (DotProduct3D(SubtractVec3D(v_correctHit, v_start), v_direction) < 0)
 		{
@@ -468,6 +461,10 @@ public:
 			*v_intersection = v_correctHit;
 		}
 
+		// Calculating the normal of the sphere (without normalmap)
+		Vec3D v_normal = SubtractVec3D(v_correctHit, sphere.coords);
+		NormalizeVec3D(&v_normal);
+
 		if (depth != nullptr)
 		{
 			*depth = Distance3D(g_player.coords, v_correctHit);
@@ -482,6 +479,8 @@ public:
 			{
 				q_surfaceNormal->realPart = -1;
 			}
+
+			ScaleVec3D(&(q_surfaceNormal->vecPart), q_surfaceNormal->realPart);
 		}
 
 		if (v_intersectionColor == nullptr)
@@ -539,7 +538,7 @@ public:
 					v_forwardTangent
 				};
 
-				q_surfaceNormal->vecPart = VecMatrixMultiplication3D(v_normalMapNormal, normalMatrix);
+				q_surfaceNormal->vecPart = VecScalarMultiplication3D(VecMatrixMultiplication3D(v_normalMapNormal, normalMatrix), q_surfaceNormal->realPart);
 			}
 		}
 		
@@ -656,6 +655,8 @@ public:
 				// The triangle face is inside of the mesh, so the normal must be flipped
 				q_surfaceNormal->realPart = -1;
 			}
+
+			ScaleVec3D(&(q_surfaceNormal->vecPart), q_surfaceNormal->realPart);
 		}
 		
 		if (v_intersectionColor == nullptr)
@@ -747,7 +748,7 @@ public:
 					ReturnNormalizedVec3D(tangentsMatrix.j_Hat)
 				};
 
-				q_surfaceNormal->vecPart = VecMatrixMultiplication3D(v_normalMapNormal, normalMatrix);
+				q_surfaceNormal->vecPart = VecScalarMultiplication3D(VecMatrixMultiplication3D(v_normalMapNormal, normalMatrix), q_surfaceNormal->realPart);
 			}
 		}
 		
@@ -905,8 +906,6 @@ public:
 			return v_outgoingLightColor;
 		}
 
-		ScaleVec3D(&q_surfaceNormal.vecPart, q_surfaceNormal.realPart);
-
 		Vec3D v_outgoingDirection;
  
 		float cosIncomingAngle = -(DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart));
@@ -916,7 +915,7 @@ public:
 
 		float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
 
-		float sinRefractedAngle = Min(refractionIndex1 * sinIncomingAngle / refractionIndex2, 1);
+		float sinRefractedAngle = Min(refractionIndex1 * sinIncomingAngle / refractionIndex2, 1.0f);
 
 		// Pythagorean identity
 		float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle);
@@ -949,9 +948,9 @@ public:
 
 			Vec3D v_specularRay = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, 2 * DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart)));
 
-			v_outgoingDirection = ReturnNormalizedVec3D(Lerp3D(v_specularRay, v_lambertianRay, material.roughness));
+			v_outgoingDirection = ReturnNormalizedVec3D(Lerp3D(v_specularRay, v_lambertianRay, material.reflectiveRoughness));
 
-			AddToVec3D(&v_intersection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, OFFSET_DISTANCE));
+			AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_outgoingDirection, OFFSET_DISTANCE));
 
 			if (q_surfaceNormal.realPart == -1)
 			{
@@ -961,11 +960,23 @@ public:
 		}
 		else
 		{
-			// Refract the ray
-			v_outgoingDirection = AddVec3D(VecScalarMultiplication3D(q_surfaceNormal.vecPart, -cosRefractedAngle), VecScalarMultiplication3D(v_surfaceTangent, sinRefractedAngle));
+			float randX = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
+			float randY = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
+			float randZ = int64_t(randEngine()) - int64_t(randEngine.max()) / 2;
 
-			// Offset in the direction opposite to the surface normal
-			AddToVec3D(&v_intersection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, -OFFSET_DISTANCE));
+			Vec3D v_lambertianRay = ReturnNormalizedVec3D({ randX, randY, randZ });
+
+			if (DotProduct3D(v_lambertianRay, q_surfaceNormal.vecPart) > 0)
+			{
+				// The vector is in the wrong hemisphere, so we flip it
+				ScaleVec3D(&v_lambertianRay, -1);
+			}
+
+			Vec3D v_refractiveRay = AddVec3D(VecScalarMultiplication3D(q_surfaceNormal.vecPart, -cosRefractedAngle), VecScalarMultiplication3D(v_surfaceTangent, sinRefractedAngle));
+
+			v_outgoingDirection = ReturnNormalizedVec3D(Lerp3D(v_refractiveRay, v_lambertianRay, material.refractiveRoughness));
+
+			AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_outgoingDirection, OFFSET_DISTANCE));
 
 			if (q_surfaceNormal.realPart == 1)
 			{
