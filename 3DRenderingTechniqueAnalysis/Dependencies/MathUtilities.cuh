@@ -69,6 +69,11 @@ float Lerp(float startValue, float endValue, float t)
 	return startValue + (endValue - startValue) * t;
 }
 
+float Square(float a)
+{
+	return a * a;
+}
+
 //
 // Methods for 2D vectors
 //
@@ -143,7 +148,7 @@ Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, float t)
 // Methods for 3D vectors
 //
 
-void AddToVec3D(Vec3D* v1, Vec3D v2)
+inline void AddToVec3D(Vec3D* v1, Vec3D v2)
 {
 	v1->x += v2.x;
 	v1->y += v2.y;
@@ -155,26 +160,26 @@ Vec3D AddVec3D(Vec3D v1, Vec3D v2)
 	return { v1.x + v2.x, v1.y + v2.y, v1.z + v2.z };
 }
 
-void SubtractFromVec3D(Vec3D* v1, Vec3D v2)
+inline void SubtractFromVec3D(Vec3D* v1, Vec3D v2)
 {
 	v1->x -= v2.x;
 	v1->y -= v2.y;
 	v1->z -= v2.z;
 }
 
-Vec3D SubtractVec3D(Vec3D v1, Vec3D v2)
+inline Vec3D SubtractVec3D(Vec3D v1, Vec3D v2)
 {
 	return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
 }
 
-void ScaleVec3D(Vec3D* v, float scalar)
+inline void ScaleVec3D(Vec3D* v, float scalar)
 {
 	v->x *= scalar;
 	v->y *= scalar;
 	v->z *= scalar;
 }
 
-Vec3D VecScalarMultiplication3D(Vec3D v, float scalar)
+inline Vec3D VecScalarMultiplication3D(Vec3D v, float scalar)
 {
 	return { v.x * scalar, v.y * scalar, v.z * scalar };
 }
@@ -215,23 +220,23 @@ Vec3D ReturnNormalizedVec3D(Vec3D v)
 	return { v.x * inverseVectorLength, v.y * inverseVectorLength, v.z * inverseVectorLength };
 }
 
-float DotProduct3D(Vec3D v1, Vec3D v2)
+inline float DotProduct3D(Vec3D v1, Vec3D v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-Vec3D CrossProduct(Vec3D a, Vec3D b)
+inline Vec3D CrossProduct(Vec3D a, Vec3D b)
 {
 	return { a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
 }
 
 // Very useful
-Vec3D ConusProduct(Vec3D a, Vec3D b)
+inline Vec3D ConusProduct(Vec3D a, Vec3D b)
 {
 	return { a.x * b.x, a.y * b.y, a.z * b.z };
 }
 
-Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
+inline Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
 {
 	Vec3D result;
 
