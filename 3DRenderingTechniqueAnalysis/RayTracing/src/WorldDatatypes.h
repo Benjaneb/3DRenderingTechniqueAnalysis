@@ -1,5 +1,5 @@
 #pragma once
-#define STANDARD_MATERIAL { 0.1, 0.3, 0.4, 1, 500, 5, 1 }
+#define STANDARD_MATERIAL { 0.1, 0.3, 0.4, 1, 500, 6, 1 }
 
 #include <chrono>
 #include "olcPixelGameEngine.h"
