@@ -1,15 +1,15 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define PATH_TRACING 1
+#define PATH_TRACING 0
 #define ASYNC 0
-#define SCREEN_WIDTH 1000
-#define SCREEN_HEIGHT 750
-#define RENDER_DISTANCE 50
+#define SCREEN_WIDTH 500
+#define SCREEN_HEIGHT 375
+#define RENDER_DISTANCE 30
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.002f
 #define MAX_BOUNCES 3
 #define SAMPLES_PER_PIXEL 1
-#define SAMPLES_PER_RAY 1
+#define SAMPLES_PER_RAY 5
 #define WHITE_COLOR { 255, 255, 255 }
 
 #include <iostream>
@@ -31,6 +31,7 @@ float g_depthBuffer[SCREEN_HEIGHT * SCREEN_WIDTH]; // Contains the distance to e
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
+std::vector<Light> g_lights;
 
 Ground g_ground;
 
@@ -50,7 +51,7 @@ std::default_random_engine randEngine;
 
 namespace Options
 {
-	bool mcControls = false;
+	bool mcControls = true;
 }
 
 class Engine : public olc::PixelGameEngine
@@ -60,8 +61,6 @@ public:
 	{
 		sAppName = "Ray_Tracing_Engine";
 	}
-
-public:
 
 	bool OnUserCreate() override
 	{
@@ -82,60 +81,70 @@ public:
 		g_spheres = 
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { LAMBERTIAN, 17, 0 } },
-			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { GLOSSY, 0.1, 0.75, 0.05 } },
-			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.45 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
-			// World atlas globe
-			{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
+			//{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { LAMBERTIAN, 17, 0 } },
+			//// Glossy ball
+			//{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { GLOSSY, 0.1, 0.75, 0.05 } },
+			//// Basket ball
+			//{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.45 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
+			//// World atlas globe
+			//{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
 			// Magenta lightsource
 			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { LAMBERTIAN, 7.5, 0 } },
 			// Another glossy ball
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { GLOSSY, 0.1, 0.6, 0.2 } }
+			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { GLOSSY, 0.1, 0.6, 0.2 } },
+			// Big green ball
+			{ { 1.8, 0.8, 1.2 }, 0.8, { 0.2, 1, 0.4 }, { LAMBERTIAN, 7.5, 0 } },
+			// Big blue ball
+			{ { -0.5, 1.2, 1.5 }, 1.2, { 0.3, 0.2, 1 }, { LAMBERTIAN, 0.1, 0.6, 0.2 } }
 		};
 
 		g_triangles =
 		{
-			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
-			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
-			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
-			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			//// Walls first face
+			//{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 0.8, 1.2, 0.8 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			//// Walls second face
+			//{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			//// Walls third face
+			//{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			//// Walls fourth face
+			//{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
-			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box first face
+			//{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box second face
+			//{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box third face
+			//{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fourth face							   
+			//{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fifth face							   
+			//{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { LAMBERTIAN, 0.15, 0.3 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 
 			// Lonely pyramid
-			{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.8, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.2, 0, 2.8 }, { 0.5, 1.4, 2.5 }, { 0.2, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.2, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.2 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.8, 0, 2.2 }, { 0.5, 1.4, 2.5 }, { 0.8, 0, 2.8 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+		};
+
+		g_lights =
+		{
+			{ { 1.5, 3, 1.5 }, 0.5, 500, { 1, 0.8, 0.6 } }
 		};
 
 		//ImportScene(&g_triangles, "../Assets/IsakBenjaminMunk.obj", { { { LAMBERTIAN, 0.7, 0.3 }, "Material" }, { { LAMBERTIAN, 0.7, 0.3 }, "Material.001" } }, { 1.5, 0.2, 1.5 });
 
 		//ImportScene(&g_triangles, "../Assets/BananaLow_OBJ.obj", 0.5, { 1, 0, 0 });
+
 #if ASYNC == 1
 		std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
 #else
@@ -149,6 +158,7 @@ public:
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		Timer timer("Rendering");
+
 		Controlls(fElapsedTime);
 
 #if ASYNC == 1
@@ -163,12 +173,13 @@ public:
 		return true;
 	}
 
+private:
 	// Defined in Controlls.h
 	void Controlls(float fElapsedTime);
 
 	void RayTracing(Vec2D screenStart, Vec2D screenEnd)
 	{
-		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
+		const float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
 		for (float y = screenStart.y - SCREEN_HEIGHT * 0.5f + 0.5f; y < screenEnd.y - SCREEN_HEIGHT * 0.5f + 0.5f; y++)
 		{
@@ -207,7 +218,9 @@ public:
 
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
+#if PATH_TRACING == 1
 			std::cout << int((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT * 100) << "%" << std::endl;
+#endif
 		}
 	}
 
@@ -222,9 +235,15 @@ public:
 
 		if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 		{
+#if PATH_TRACING == 1
 			v_intersectionColor = CalculateLighting_PathTracing(
 				v_intersectionColor, g_ground.material, v_surfaceNormal, v_direction, v_intersection, 0
 			);
+#else
+			v_intersectionColor = CalculateLighting_DistributionTracing(
+				v_intersectionColor, g_ground.material, v_surfaceNormal, v_direction, v_intersection, 0
+			);
+#endif
 
 			g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 			g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -376,9 +395,15 @@ public:
 
 			if (intersectionExists && depth < g_depthBuffer[SCREEN_WIDTH * screenY + screenX])
 			{
+#if PATH_TRACING == 1
 				v_intersectionColor = CalculateLighting_PathTracing(
 					v_intersectionColor, g_spheres[i].material, v_surfaceNormal, v_direction, v_intersection, 0
 				);
+#else
+				v_intersectionColor = CalculateLighting_DistributionTracing(
+					v_intersectionColor, g_spheres[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+				);
+#endif
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
 				g_depthBuffer[SCREEN_WIDTH * screenY + screenX] = depth;
@@ -564,7 +589,9 @@ public:
 					v_intersectionColor, g_triangles[i].material, v_surfaceNormal, v_direction, v_intersection, 0
 				);
 #else
-
+				v_intersectionColor = CalculateLighting_DistributionTracing(
+					v_intersectionColor, g_triangles[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+				);
 #endif
 
 				g_pixels[SCREEN_WIDTH * screenY + screenX] = v_intersectionColor;
@@ -986,9 +1013,52 @@ public:
 		return v_outgoingLightColor;
 	}
 
-	Vec3D CalculateLightning_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
+	Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
 	{
+		Vec3D pixelColor = ZERO_VEC3D;
 
+		// Temporary until refraction (it'll need to decide whether to offset in or out)
+		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, OFFSET_DISTANCE));
+
+		// Soft shadows
+		for (int i = 0; i < g_lights.size(); i++)
+		{
+			float notBlockedProportion = 0;
+
+			for (int j = 0; j < SAMPLES_PER_RAY; j++)
+			{
+				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				Vec3D v_displacement = { randX, randY, randZ };
+				NormalizeVec3D(&v_displacement);
+				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
+				Vec3D randomPointLight = AddVec3D(g_lights[i].coords, v_displacement);
+
+				Vec3D v_newDirection = ReturnNormalizedVec3D(SubtractVec3D(randomPointLight, v_intersection));
+
+				notBlockedProportion += !IsRayBlocked(v_intersection, v_newDirection, g_lights[i].coords);
+			}
+
+			notBlockedProportion /= SAMPLES_PER_RAY;
+
+			float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
+
+			//v_objectColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
+			Vec3D lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
+
+			// (objectColor + lightColor) * notBlockedProportion / (distance ^ 2)
+			Vec3D v_shading = VecScalarMultiplication3D(VecScalarMultiplication3D(AddVec3D(v_objectColor, lightColor), notBlockedProportion), 1.0f / (distance * distance));
+
+			AddToVec3D(&pixelColor, v_shading);
+		}
+
+		// Reflection
+
+
+		// Refraction
+
+		return pixelColor;
 	}
 
 	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)
@@ -1027,24 +1097,6 @@ public:
 
 		// The ray is not blocked
 		return false;
-	}
-
-	void Refraction(Vec3D v_direction, Vec3D v_intersection, Vec3D v_normal, float refractionIndex)
-	{
-
-	}
-
-	Vec3D RefractRay(Vec3D v_incomingDirection, Vec3D v_normal, float refractionIndex1, float refractionIndex2)
-	{
-		float sinOutgoingAngle = refractionIndex1 * -DotProduct3D(v_incomingDirection, v_normal) / refractionIndex2;
-		float cosOutgoingAngle = sqrt(1 - sinOutgoingAngle * sinOutgoingAngle);
-		
-		Vec3D v_tangent = CrossProduct(v_normal, CrossProduct(v_normal, v_incomingDirection));
-
-		return AddVec3D(
-			VecScalarMultiplication3D(v_normal, -sinOutgoingAngle),
-			VecScalarMultiplication3D(v_tangent, cosOutgoingAngle)
-		);
 	}
 };
 

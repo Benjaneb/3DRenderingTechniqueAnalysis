@@ -1,7 +1,6 @@
 #pragma once
 
-#define FUCK_SHIT
-#define STANDARD_MATERIAL { LAMBERTIAN, 0.1, 0.3 }
+#define STANDARD_MATERIAL { LAMBERTIAN, 0.1f, 0.3f }
 
 #include <chrono>
 #include "olcPixelGameEngine.h"
@@ -62,6 +61,14 @@ struct Ground
 	Vec2D textureCorner2 = ZERO_VEC2D;
 	float textureScalar = 1;
 	olc::Sprite* normalMap = nullptr;
+};
+
+struct Light // Only for distribution ray tracing
+{
+	Vec3D coords;
+	float radius;
+	float emittance;
+	Vec3D tint;
 };
 
 struct Timer
