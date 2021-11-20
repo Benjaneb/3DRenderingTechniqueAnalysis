@@ -20,9 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\RayTracing.cu" />
-    <CudaCompile Include="src\Shape.cu" />
-    <CudaCompile Include="src\Sphere.cu" />
-    <CudaCompile Include="src\Triangle.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Controlls.h" />

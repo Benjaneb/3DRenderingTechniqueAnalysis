@@ -4,7 +4,7 @@
 // Material information about a specific part of a mesh. For example, the legs of a chair
 struct MeshPart
 {
-	Material material = STANDARD_MATERIAL;
+	Material material;
 	std::string name;
 	olc::Sprite* normalMap = nullptr;
 };
@@ -97,7 +97,6 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 		{
 			if (scene->at(i).meshPartName == meshPartName)
 			{
-				scene->at(i).tint = tint;
 				scene->at(i).texture = texture;
 				scene->at(i).material = meshPart.material;
 				scene->at(i).normalMap = meshPart.normalMap;
@@ -166,8 +165,7 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
 						}, // Vertices
-						{ 1, 1, 1 }, // tint
-						STANDARD_MATERIAL, // Material data
+						{ { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.975, 1.1, 500 }, // Material data
 						meshPartName,
 					});
 				else
@@ -178,8 +176,7 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
 						}, // Vertices
-						{ 1, 1, 1 }, // tint
-						STANDARD_MATERIAL, // Material data
+						{ { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.975, 1.1, 500 }, // Material data
 						meshPartName,
 						nullptr, // Texture, set to nullptr for now
 						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } }, // Texture vertices
