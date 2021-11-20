@@ -1,5 +1,6 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
+#define PATH_TRACING 0
 
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 1
@@ -33,6 +34,7 @@ Player g_player;
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
+std::vector<Light> g_lights;
 
 Ground g_ground;
 
@@ -50,14 +52,12 @@ olc::Sprite* g_tiledfloor_normalmap;
 olc::Sprite* g_worldmap_normalmap;
 olc::Sprite* g_bricks_normalmap;
 
-olc::Sprite* scene;
-
 std::default_random_engine randEngine;
 
 // Ingame options (can be changed during runtime)
 namespace Options
 {
-	bool mcControls = false;
+	bool mcControls = true;
 }
 
 class Engine : public olc::PixelGameEngine
@@ -156,6 +156,10 @@ public:
 			{ { { 0.9 + 2, 0 + 0.01, 2.9 }, { 0.9 + 2, 0 + 0.01, 2.1 }, { 0.1 + 2, 0 + 0.01, 2.1 } }, { 0.6, 0.6, 1.5 }, { 0.3, 0.4, 0.02, 0.95, { 1, 0, 0 }, 0, 1.7 } }*/
 		};
 
+		g_lights =
+		{
+			{ { 1.5, 3, 1.5 }, 0.5, 500, { 1, 0.8, 0.6 } }
+		};
 		g_ground = { 0, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.6, 2, 500 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1 };
 
 #if ASYNC == 1
@@ -170,6 +174,7 @@ public:
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		Timer timer("Rendering");
+
 		Controlls(fElapsedTime);
 
 #if ASYNC == 1
@@ -199,12 +204,13 @@ public:
 		return true;
 	}
 
+private:
 	// Defined in Controlls.h
 	void Controlls(float fElapsedTime);
 
 	void RayTracing(int startX, int endX)
 	{
-		float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
+		const float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
 		for (float y = -SCREEN_HEIGHT * 0.5f + 0.5f; y < SCREEN_HEIGHT * 0.5f + 0.5f; y++)
 		{
@@ -237,7 +243,9 @@ public:
 
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
-			//std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
+#if PATH_TRACING == 1
+			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
+#endif
 		}
 	}
 
@@ -293,9 +301,15 @@ public:
 
 		if (intersectionExists)
 		{
+#if PATH_TRACING == 1
 			v_intersectionColor = CalculateLighting_PathTracing(
 				v_intersectionColor, g_ground.material, q_surfaceNormal, v_direction, v_intersection, 0
 			);
+#else
+			v_intersectionColor = CalculateLighting_DistributionTracing(
+				v_intersectionColor, g_ground.material, v_surfaceNormal, v_direction, v_intersection, 0
+			);
+#endif
 
 			return v_intersectionColor;
 		}
@@ -874,6 +888,54 @@ public:
 		}
 
 		return false;
+	}
+
+	Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
+	{
+		Vec3D pixelColor = ZERO_VEC3D;
+
+		// Temporary until refraction (it'll need to decide whether to offset in or out)
+		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, OFFSET_DISTANCE));
+
+		// Soft shadows
+		for (int i = 0; i < g_lights.size(); i++)
+		{
+			float notBlockedProportion = 0;
+
+			for (int j = 0; j < SAMPLES_PER_RAY; j++)
+			{
+				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				Vec3D v_displacement = { randX, randY, randZ };
+				NormalizeVec3D(&v_displacement);
+				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
+				Vec3D randomPointLight = AddVec3D(g_lights[i].coords, v_displacement);
+
+				Vec3D v_newDirection = ReturnNormalizedVec3D(SubtractVec3D(randomPointLight, v_intersection));
+
+				notBlockedProportion += !IsRayBlocked(v_intersection, v_newDirection, g_lights[i].coords);
+			}
+
+			notBlockedProportion /= SAMPLES_PER_RAY;
+
+			float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
+
+			//v_objectColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
+			Vec3D lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
+
+			// (objectColor + lightColor) * notBlockedProportion / (distance ^ 2)
+			Vec3D v_shading = VecScalarMultiplication3D(VecScalarMultiplication3D(AddVec3D(v_objectColor, lightColor), notBlockedProportion), 1.0f / (distance * distance));
+
+			AddToVec3D(&pixelColor, v_shading);
+		}
+
+		// Reflection
+
+
+		// Refraction
+
+		return pixelColor;
 	}
 
 	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)

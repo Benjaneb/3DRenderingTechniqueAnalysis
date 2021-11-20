@@ -52,6 +52,14 @@ struct Ground
 	olc::Sprite* normalMap = nullptr;
 };
 
+struct Light // Only for distribution ray tracing
+{
+	Vec3D coords;
+	float radius;
+	float emittance;
+	Vec3D tint;
+};
+
 struct Timer
 {
 	std::chrono::time_point<std::chrono::steady_clock> start, end;
