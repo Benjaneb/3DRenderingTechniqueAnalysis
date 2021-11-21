@@ -11,12 +11,12 @@ struct Player
 
 struct Material
 {
-	Vec3D emittance; // Measured from 0 to infinity
+	Vec3D emittance; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
 	Vec3D diffuseTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	Vec3D specularTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	float roughness; // Measured from 0 to 1
 	float refractionIndex; // Measured from 0 to infinity
-	float attenuation; // Measured from 0 to infinity
+	Vec3D attenuation; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
 };
 
 struct Sphere
