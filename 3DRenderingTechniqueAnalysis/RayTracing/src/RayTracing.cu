@@ -10,8 +10,8 @@
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
 #define MAX_BOUNCES 10
-#define SAMPLES_PER_PIXEL 3 // for path tracing
-#define SAMPLES_PER_RAY 1 // for distribution ray tracing
+#define SAMPLES_PER_PIXEL 1 // for path tracing
+#define SAMPLES_PER_RAY 5 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
 
@@ -41,6 +41,7 @@ std::vector<Light> g_lights;
 
 Ground g_ground;
 
+// Textures
 olc::Sprite* g_basketball_texture;
 olc::Sprite* g_planks_texture;
 olc::Sprite* g_concrete_texture;
@@ -94,58 +95,58 @@ public:
 		g_spheres =
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6, 1 } },
+			//{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6, 1 } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6, 1 } },
+			//{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6, 1 } },
 			// Basket ball
-			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6, 1 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
+			{ { 3, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6, 1 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
 			// World atlas globe
-			{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.15, 0.3, 0.5, 1, 500, 6, 1 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
+			//{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.15, 0.3, 0.5, 1, 500, 6, 1 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
 			// Magenta lightsource
 			{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { 9, 0, 0, 1, 500, 6, 1 } },
 			// Another glossy ball
 			//{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.1, 0.5, 0.9, 0.5, 500, 6, 1 } },
 			// Refractibe BALLZ
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } }
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { GLOSSY, 0.1, 0.6, 0.2 } },
+			//{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } },
+			//{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } },
 			// Big green ball
-			{ { 1.8, 0.8, 1.2 }, 0.8, { 0.2, 1, 0.4 }, { LAMBERTIAN, 7.5, 0 } },
+			{ { 1.8, 0.8, 1.2 }, 0.8, { 0.2, 1, 0.4 }, STANDARD_MATERIAL },
 			// Big blue ball
-			{ { -0.5, 1.2, 1.5 }, 1.2, { 0.3, 0.2, 1 }, { LAMBERTIAN, 0.1, 0.6, 0.2 } }
+			{ { -0.5, 1.2, 1.5 }, 1.2, { 0.3, 0.2, 1 }, STANDARD_MATERIAL }
 		};
 
 		float a = 1;
 
 		g_triangles =
 		{
-			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
-			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap},
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls first face
+			//{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
+			//{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
+			//// Walls second face
+			//{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap},
+			//{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls third face
+			//{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			//{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls fourth face
+			//{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			//{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 
-			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box first face
+			//{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box second face
+			//{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box third face
+			//{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fourth face							   
+			//{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fifth face							   
+			//{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 
 			// Refractive box first face
 			/*{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
@@ -166,19 +167,19 @@ public:
 			{ { { 1, 0 + 1.25, 2 - 1 }, { 1, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			{ { { 1, 0 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },*/
 
-			// refractive pyramid
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.1, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//// refractive pyramid
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.1, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
 
-			// reflective gold pyramid
-			{ { { 0.9 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.1 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.1 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.9 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
+			//// reflective gold pyramid
+			//{ { { 0.9 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.1 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.1 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.9 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
 		};
 
 		g_lights =
@@ -281,7 +282,7 @@ private:
 			);
 #else
 			v_intersectionColor = CalculateLighting_DistributionTracing(
-				v_intersectionColor, g_ground.material, v_surfaceNormal, v_direction, v_intersection, 0
+				v_intersectionColor, g_ground.material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 			);
 #endif
 
@@ -433,7 +434,7 @@ private:
 				);
 #else
 				v_intersectionColor = CalculateLighting_DistributionTracing(
-					v_intersectionColor, g_spheres[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+					v_intersectionColor, g_spheres[i].material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 				);
 #endif
 
@@ -637,7 +638,7 @@ private:
 				);
 #else
 				v_intersectionColor = CalculateLighting_DistributionTracing(
-					v_intersectionColor, g_triangles[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+					v_intersectionColor, g_triangles[i].material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 				);
 #endif
 
@@ -1256,7 +1257,7 @@ private:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
 		rayTracer.Start();
 	return 0;
 }

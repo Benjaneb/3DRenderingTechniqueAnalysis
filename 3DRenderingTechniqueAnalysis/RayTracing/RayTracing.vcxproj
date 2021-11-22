@@ -25,7 +25,6 @@
     <CudaCompile Include="src\Triangle.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Controlls.h" />
     <ClInclude Include="src\WorldDatatypes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
