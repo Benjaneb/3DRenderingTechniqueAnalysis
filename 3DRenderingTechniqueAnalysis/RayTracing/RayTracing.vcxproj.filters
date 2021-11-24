@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="src\RayTracing.cu" />
-    <CudaCompile Include="src\Sphere.cu" />
-    <CudaCompile Include="src\Triangle.cu" />
-    <CudaCompile Include="src\Shape.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\WorldDatatypes.h">

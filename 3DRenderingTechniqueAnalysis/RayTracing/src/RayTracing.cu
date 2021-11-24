@@ -1,17 +1,17 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define PATH_TRACING 0
 
-// Startup settings (cannot be changed during runtime)
+// Build settings (cannot be changed during runtime)
+#define PATH_TRACING 0
 #define ASYNC 0
 #define SCREEN_WIDTH 500
 #define SCREEN_HEIGHT 375
 #define RENDER_DISTANCE 30
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define MAX_BOUNCES 10
-#define SAMPLES_PER_PIXEL 3 // for path tracing
-#define SAMPLES_PER_RAY 1 // for distribution ray tracing
+#define MAX_BOUNCES 3
+#define SAMPLES_PER_PIXEL 1 // for path tracing
+#define SAMPLES_PER_RAY 5 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
 
@@ -94,9 +94,9 @@ public:
 		g_spheres =
 		{
 			// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6, 1 } },
+			//{ { 1.5, 3, 1.5 }, 0.5, { 0.965, 0.795, 0.3333 }, { 17, 0, 0, 1, 500, 6, 1 } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6, 1 } },
+			//{ { 1.5, 1.4, 1.5 }, 0.4, { 0.965, 0.795, 0.3333 }, { 0.1, 0.6, 0.9, 0.05, 500, 6, 1 } },
 			// Basket ball
 			{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.15, 0.3, 0.6, 1, 500, 6, 1 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2), g_basketball_normalmap },
 			// World atlas globe
@@ -106,46 +106,46 @@ public:
 			// Another glossy ball
 			//{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.1, 0.5, 0.9, 0.5, 500, 6, 1 } },
 			// Refractibe BALLZ
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } }
-			{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { GLOSSY, 0.1, 0.6, 0.2 } },
+			//{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } },
+			//{ { 1.1, 0.3, 0.4 }, 0.3, { 0.6, 0.8, 0.9 }, { 0.2, 0, 1, 0, 0.2, 1.3, 0 } },
 			// Big green ball
-			{ { 1.8, 0.8, 1.2 }, 0.8, { 0.2, 1, 0.4 }, { LAMBERTIAN, 7.5, 0 } },
+			{ { 1.8, 0.8, 1.8 }, 0.8, { 0.2, 1, 0.4 }, { 0.1, 0.3, 0.4, 0, 500, 6, 1 } },
 			// Big blue ball
-			{ { -0.5, 1.2, 1.5 }, 1.2, { 0.3, 0.2, 1 }, { LAMBERTIAN, 0.1, 0.6, 0.2 } }
+			{ { -0.5, 1.2, 1.9 }, 1.2, { 0.3, 0.2, 1 }, { 0.1, 0.3, 0.4, 0.5, 500, 6, 1 } }
 		};
 
 		float a = 1;
 
 		g_triangles =
 		{
-			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
-			// Walls second face
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap},
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls third face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls fourth face
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls first face
+			//{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
+			//{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
+			//// Walls second face
+			//{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap},
+			//{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { 0.8, 1.1, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls third face
+			//{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			//{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { 1.1, 0.8, 1.1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			//// Walls fourth face
+			//{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			//{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { 1, 1, 1 }, STANDARD_MATERIAL, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 
-			// Box first face
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box second face
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box third face
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fourth face							   
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fifth face							   
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box first face
+			//{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box second face
+			//{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box third face
+			//{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fourth face							   
+			//{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			//// Box fifth face							   
+			//{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
+			//{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { 1, 1, 1 }, { 0.15, 0.3, 0.4, 1, 500, 6, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 
 			// Refractive box first face
 			/*{ { { 1, 0 + 1.25, 1 - 1 }, { 1, 1 + 1.25, 1 - 1 }, { 2, 1 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
@@ -166,31 +166,35 @@ public:
 			{ { { 1, 0 + 1.25, 2 - 1 }, { 1, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 1 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },
 			{ { { 1, 0 + 1.25, 2 - 1 }, { 2, 0 + 1.25, 1 - 1 }, { 2, 0 + 1.25, 2 - 1 } }, { 0.8, 1, 1 }, { 0.2, 0, 0.9, 0.5, 0, b, 0 } },*/
 
-			// refractive pyramid
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.1, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
-			{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//// refractive pyramid
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.1, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.9, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
+			//{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.9, 0 + 0.01, 2.1 - 0.7 }, { 0.1, 0 + 0.01, 2.1 - 0.7 } }, { 1, 1, 1 }, { 0.2, 0, 1, 0, 0, 1.52, 0 } },
 
-			// reflective gold pyramid
-			{ { { 0.9 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.1 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.1 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0.9 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
+			//// reflective gold pyramid
+			//{ { { 0.9 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.1 + 2, 0, 2.9 }, { 0.5 + 2, 1.4, 2.5 }, { 0.1 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.1 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.1 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			//{ { { 0.9 + 2, 0, 2.1 }, { 0.5 + 2, 1.4, 2.5 }, { 0.9 + 2, 0, 2.9 } }, { 1, 1, 1 }, { 0.2, 0.4, 0.9, 0.2, 500, 6, 1 }, "", g_gold_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } }
 		};
 
 		g_lights =
 		{
 			{ { 1.5, 3, 1.5 }, 0.5, 500, { 1, 0.8, 0.6 } }
 		};
+
+		for (int i = 0; i < g_lights.size(); i++)
+			g_spheres.push_back({ g_lights[i].coords, g_lights[i].radius, g_lights[i].tint, { g_lights[i].emittance, 0, 0, 0, 0, 1, 0 } });
+
 #if ASYNC == 1
 		//std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
 #else
 		//ImportScene(&g_triangles, "../Assets/RubberDuck.obj", 0.4, { 0.8, 0.5, 0.5 });
 #endif
-		g_ground = { 0, { 1, 1, 1 }, { 0.1, 0.5, 0.75, 1, 500, 6, 1 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		g_ground = { 0, { 1, 1, 1 }, { 0.1, 0, 0, 1, 500, 6, 1 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 
 		return true;
 	}
@@ -281,7 +285,7 @@ private:
 			);
 #else
 			v_intersectionColor = CalculateLighting_DistributionTracing(
-				v_intersectionColor, g_ground.material, v_surfaceNormal, v_direction, v_intersection, 0
+				v_intersectionColor, g_ground.material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 			);
 #endif
 
@@ -433,7 +437,7 @@ private:
 				);
 #else
 				v_intersectionColor = CalculateLighting_DistributionTracing(
-					v_intersectionColor, g_spheres[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+					v_intersectionColor, g_spheres[i].material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 				);
 #endif
 
@@ -637,7 +641,7 @@ private:
 				);
 #else
 				v_intersectionColor = CalculateLighting_DistributionTracing(
-					v_intersectionColor, g_triangles[i].material, v_surfaceNormal, v_direction, v_intersection, 0
+					v_intersectionColor, g_triangles[i].material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
 				);
 #endif
 
@@ -1152,7 +1156,10 @@ private:
 
 	Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
 	{
-		Vec3D pixelColor = ZERO_VEC3D;
+		Vec3D v_pixelColor = ZERO_VEC3D;
+
+		if (i_bounceCount > MAX_BOUNCES)
+			return v_pixelColor;
 
 		// Temporary until refraction (it'll need to decide whether to offset in or out)
 		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, OFFSET_DISTANCE));
@@ -1164,11 +1171,7 @@ private:
 
 			for (int j = 0; j < SAMPLES_PER_RAY; j++)
 			{
-				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				Vec3D v_displacement = { randX, randY, randZ };
-				NormalizeVec3D(&v_displacement);
+				Vec3D v_displacement = ReturnNormalizedVec3D(RandomVec_InUnitSphere());
 				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
 				Vec3D randomPointLight = AddVec3D(g_lights[i].coords, v_displacement);
 
@@ -1181,21 +1184,135 @@ private:
 
 			float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
 
-			//v_objectColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
-			Vec3D lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
+			v_objectColor = VecScalarMultiplication3D(v_objectColor, 1 + material.emittance);
+			Vec3D v_lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
 
 			// (objectColor + lightColor) * notBlockedProportion / (distance ^ 2)
-			Vec3D v_shading = VecScalarMultiplication3D(VecScalarMultiplication3D(AddVec3D(v_objectColor, lightColor), notBlockedProportion), 1.0f / (distance * distance));
+			Vec3D v_shading = VecScalarMultiplication3D(VecScalarMultiplication3D(AddVec3D(v_objectColor, v_lightColor), notBlockedProportion), 1 / (distance * distance));
 
-			AddToVec3D(&pixelColor, v_shading);
+			AddToVec3D(&v_pixelColor, v_shading);
 		}
 
-		// Reflection
+
+		// Reflections
+		Vec3D v_specularDirecion = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_surfaceNormal, 2 * DotProduct3D(v_incomingDirection, v_surfaceNormal)));
+
+		Vec3D v_reflectionIntersection, v_reflectionColor;
+		Quaternion q_reflectionIntersectionNormal;
+		Material newMaterial;
+
+		if (material.reflectiveRoughness == 0)
+		{
+			// Specular reflections
+			bool b_foundIntersection = FindIntersection(v_intersection, v_specularDirecion, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+			if (b_foundIntersection)
+			{
+				v_reflectionColor = CalculateLighting_DistributionTracing(
+					v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_specularDirecion, v_intersection, i_bounceCount + 1
+				);
+			}
+		}
+		else
+		{
+			// Diffuse reflections
+			int hitCount = 0;
+
+			for (int i = 0; i < SAMPLES_PER_RAY; i++)
+			{
+				Vec3D v_lambertianDirection = ReturnNormalizedVec3D(RandomVec_InUnitSphere());
+				if (DotProduct3D(v_lambertianDirection, v_surfaceNormal) < 0)
+					v_lambertianDirection = VecScalarMultiplication3D(v_lambertianDirection, -1);
+
+				Vec3D v_diffuseDirection = Lerp3D(v_specularDirecion, v_lambertianDirection, material.reflectiveRoughness);
+
+				bool b_foundIntersection = FindIntersection(v_intersection, v_diffuseDirection, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+				if (b_foundIntersection)
+				{
+					AddToVec3D(&v_reflectionColor, CalculateLighting_DistributionTracing(
+						v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_diffuseDirection, v_intersection, i_bounceCount + 1
+					));
+					hitCount++;
+				}
+			}
+
+			if (hitCount > 0) v_reflectionColor = VecScalarMultiplication3D(v_reflectionColor, 1 / hitCount);
+		}
 
 
 		// Refraction
+		// Tangent inside of the plane defined by v_surfaceNormal and v_incomingDirection
+		Vec3D v_surfaceTangent = CrossProduct(ReturnNormalizedVec3D(CrossProduct(v_surfaceNormal, v_incomingDirection)), v_surfaceNormal);
 
-		return pixelColor;
+		float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
+
+		float sinRefractedAngle = Min(REFRACTION_INDEX_AIR * sinIncomingAngle / material.refractionIndex, 1.0f);
+
+		float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle); // Pythagorean identity
+
+		//bool b_foundIntersection = FindIntersection(v_intersection, v_reflectedDirecion, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+		//if (b_foundIntersection)
+		//	v_reflectionColor = CalculateLighting_DistributionTracing(
+		//		v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_reflectedDirecion, v_intersection, ++i_bounceCount
+		//	);
+
+
+		// Fresnel for weighing reflection and refraction color
+		float cosIncomingAngle = -DotProduct3D(v_incomingDirection, v_surfaceNormal);
+
+		// Average of the s-polarized reflectance and p-polarized reflectance probabilities
+		float fresnel = (
+			Square((REFRACTION_INDEX_AIR * cosIncomingAngle - material.refractionIndex * cosRefractedAngle) / (REFRACTION_INDEX_AIR * cosIncomingAngle + material.refractionIndex * cosRefractedAngle)) +
+			Square((REFRACTION_INDEX_AIR * cosRefractedAngle - material.refractionIndex * cosIncomingAngle) / (REFRACTION_INDEX_AIR * cosRefractedAngle + material.refractionIndex * cosIncomingAngle))
+		) * 0.5f;
+
+		float reflectance = Lerp(material.minReflectance, material.maxReflectance, fresnel);
+
+		 //((1 - reflectance) * v_objectColor + reflectance * v_reflectionColor) / 2
+		v_pixelColor = VecScalarMultiplication3D(AddVec3D(VecScalarMultiplication3D(v_objectColor, (1 - reflectance)), VecScalarMultiplication3D(v_reflectionColor, reflectance)), 0.5f);
+		//v_pixelColor = VecScalarMultiplication3D(AddVec3D(v_objectColor, v_reflectionColor), 0.5f);
+
+		return v_pixelColor;
+	}
+
+	bool FindIntersection(Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection, Vec3D* v_color, Quaternion* q_normal, Material* material)
+	{
+		// Check ground
+		bool groundIntersect = GroundIntersection_RT(v_start, v_direction, v_intersection, v_color, q_normal);
+
+		if (groundIntersect && !IsRayBlocked(v_start, v_direction, *v_intersection))
+		{
+			*material = g_ground.material;
+			return true;
+		}
+
+		// Check all spheres
+		for (int i = 0; i < g_spheres.size(); i++)
+		{
+			bool sphereIntersect = SphereIntersection_RT(g_spheres[i], v_start, v_direction, v_intersection, v_color, q_normal);
+
+			if (sphereIntersect && !IsRayBlocked(v_start, v_direction, *v_intersection))
+			{
+				*material = g_spheres[i].material;
+				return true;
+			}
+		}
+
+		// Check all triangles
+		for (int i = 0; i < g_triangles.size(); i++)
+		{
+			bool triangleIntersect = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, v_intersection, v_color, q_normal);
+
+			if (triangleIntersect && !IsRayBlocked(v_start, v_direction, *v_intersection))
+			{
+				*material = g_triangles[i].material;
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)
