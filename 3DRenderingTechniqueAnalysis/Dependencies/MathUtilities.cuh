@@ -144,6 +144,12 @@ Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, double t)
 	return result;
 }
 
+// Used for vertex sorting
+bool MaxY2D(Vec2D v1, Vec2D v2)
+{
+	return (v1.y > v2.y);
+}
+
 //
 // Methods for 3D vectors
 //

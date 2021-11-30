@@ -1,6 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include "MathUtilities.cuh"
+#include "olcPixelGameEngine.h"
 
 struct Player
 {

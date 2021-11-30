@@ -38,6 +38,7 @@ std::vector<Light> g_lights;
 
 Ground g_ground;
 
+// Textures
 olc::Sprite* g_basketball_texture;
 olc::Sprite* g_planks_texture;
 olc::Sprite* g_concrete_texture;
@@ -206,7 +207,8 @@ public:
 			returnValues[i] = std::async(std::launch::async, &Engine::RayTracing, this, startX, endX, randomEngine);
 		}
 #else
-		RayTracing({ 0, 0 }, { SCREEN_WIDTH, SCREEN_HEIGHT });
+		std::mt19937 randomEngine(seedEngine());
+		RayTracing({ 0, 0 }, { SCREEN_WIDTH, SCREEN_HEIGHT }, randomEngine);
 #endif
 		std::cout << "\a" << std::endl;
 
@@ -282,7 +284,9 @@ private:
 				v_textureColor, material, q_surfaceNormal, v_direction, v_intersection, 0, randomEngine
 			);
 #else
-			//distribution tracing
+			v_textureColor = CalculateLighting_DistributionTracing(
+				v_textureColor, material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
+			);
 #endif
 		}
 
@@ -992,9 +996,10 @@ private:
 
 			for (int j = 0; j < SAMPLES_PER_RAY; j++)
 			{
-				double randX = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
-				double randY = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
-				double randZ = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
+				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+
 				Vec3D v_displacement = { randX, randY, randZ };
 				NormalizeVec3D(&v_displacement);
 				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
