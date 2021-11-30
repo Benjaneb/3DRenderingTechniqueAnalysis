@@ -10,7 +10,7 @@
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
 #define MAX_BOUNCES 15
-#define SAMPLES_PER_PIXEL 1000 // for path tracing
+#define SAMPLES_PER_PIXEL 200 // for path tracing
 #define SAMPLES_PER_RAY 1 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
@@ -54,8 +54,7 @@ olc::Sprite* g_bricks_normalmap;
 
 std::random_device seedEngine;
 std::uniform_real_distribution<> uniformDistribution(-1, 1);
-
-
+std::uniform_real_distribution<> uniform_zero_to_one(0, 1);
 
 // Ingame options (can be changed during runtime)
 namespace Options
@@ -94,15 +93,15 @@ public:
 			// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.2, 10, { 500, 500, 500 } } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.15, 15, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Refractive ball
-			//{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
-			// Refractive ball
-			{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
+			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.1, 0.1, 0.1 }, { 0.3, 0.3, 0.3 }, 0.2, 1.52, { 0, 0, 0 } } }
+			// Other Refractive ball
+			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
 			// Basket ball
 			//{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.2, 0.6, 0.8, 0.9, { -1, 0, 0 }, 500, 2 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) },
 			// World atlas globe
@@ -192,8 +191,8 @@ public:
 
 		for (int i = 0; i < THREAD_COUNT; i++)
 		{
-			int startX = i * ceil(SCREEN_WIDTH / float(THREAD_COUNT));
-			int endX = (i + 1) * ceil(SCREEN_WIDTH / float(THREAD_COUNT));
+			int startX = i * ceil(SCREEN_WIDTH / double(THREAD_COUNT));
+			int endX = (i + 1) * ceil(SCREEN_WIDTH / double(THREAD_COUNT));
 
 			if (startX >= SCREEN_WIDTH)
 			{
@@ -220,11 +219,11 @@ private:
 
 	void RayTracing(int startX, int endX, std::mt19937 randomEngine)
 	{
-		const float zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
+		const double zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
 
-		for (float y = -SCREEN_HEIGHT * 0.5f + 0.5f; y < SCREEN_HEIGHT * 0.5f + 0.5f; y++)
+		for (double y = -SCREEN_HEIGHT * 0.5f + 0.5f; y < SCREEN_HEIGHT * 0.5f + 0.5f; y++)
 		{
-			for (float x = -SCREEN_WIDTH * 0.5f + 0.5f + startX; x < -SCREEN_WIDTH * 0.5f + 0.5f + endX; x++)
+			for (double x = -SCREEN_WIDTH * 0.5f + 0.5f + startX; x < -SCREEN_WIDTH * 0.5f + 0.5f + endX; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
 
@@ -245,7 +244,7 @@ private:
 					AddToVec3D(&pixelColor, RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
 				}
 
-				ScaleVec3D(&pixelColor, 1 / float(SAMPLES_PER_PIXEL));
+				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
 
 				//std::cout << pixelColor.x << " " << pixelColor.y << " " << pixelColor.z << std::endl;
 
@@ -262,7 +261,7 @@ private:
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
 #if PATH_TRACING == 1
-			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
+			//std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
 #endif
 		}
 	}
@@ -290,7 +289,7 @@ private:
 		return v_textureColor;
 	}
 
-	float LINEAR_TO_SRGB(float l)
+	double LINEAR_TO_SRGB(double l)
 	{
 		if (l <= 0.0031308)
 		{
@@ -332,31 +331,31 @@ private:
 
 		if (g_ground.texture != nullptr || g_ground.normalMap != nullptr)
 		{
-			float signedTextureWidth = (g_ground.textureCorner2.x - g_ground.textureCorner1.x) * g_ground.textureScalar;
-			float signedTextureHeight = (g_ground.textureCorner2.y - g_ground.textureCorner1.y) * g_ground.textureScalar;
+			double signedTextureWidth = (g_ground.textureCorner2.x - g_ground.textureCorner1.x) * g_ground.textureScalar;
+			double signedTextureHeight = (g_ground.textureCorner2.y - g_ground.textureCorner1.y) * g_ground.textureScalar;
 
-			float t1 = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
-			float t2 = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
+			double t1 = fmod(rayGroundIntersection.x, signedTextureWidth) / signedTextureWidth;
+			double t2 = fmod(rayGroundIntersection.z, signedTextureHeight) / signedTextureHeight;
 
 			// if the t values are negative, we need to flip them around the center of the texture and make them positive
 			if (t1 < 0) t1 += 1;
 			if (t2 < 0) t2 += 1;
 
-			float textureX = Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1);
-			float textureY = Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2);
+			double textureX = Lerp(g_ground.textureCorner1.x, g_ground.textureCorner2.x, t1);
+			double textureY = Lerp(g_ground.textureCorner1.y, g_ground.textureCorner2.y, t2);
 
 			if (g_ground.texture != nullptr)
 			{
 				olc::Pixel texelColor = g_ground.texture->Sample(textureX, textureY);
 
-				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+				*v_intersectionColor = { double(texelColor.r), double(texelColor.g), double(texelColor.b) };
 			}
 			if (g_ground.normalMap != nullptr)
 			{
 				olc::Pixel normalMapColor = g_ground.normalMap->Sample(textureX, textureY);
 
 				// Converting the color in the normalMap to an actual unit vector
-				q_surfaceNormal->vecPart = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
+				q_surfaceNormal->vecPart = ReturnNormalizedVec3D({ double(normalMapColor.r) * 2 - 255.0f, double(normalMapColor.b) * 2 - 255.0f, double(normalMapColor.g) * 2 - 255.0f });
 			}
 		}
 
@@ -367,29 +366,29 @@ private:
 	bool SphereIntersection_RT(Sphere sphere, Vec3D v_start, Vec3D v_direction,
 		Vec3D* v_intersection = nullptr, Vec3D* v_intersectionColor = nullptr, Quaternion* q_surfaceNormal = nullptr)
 	{
-		float dxdz = v_direction.x / v_direction.z;
-		float dydz = v_direction.y / v_direction.z;
+		double dxdz = v_direction.x / v_direction.z;
+		double dydz = v_direction.y / v_direction.z;
 
-		float a = dxdz * dxdz + dydz * dydz + 1;
+		double a = dxdz * dxdz + dydz * dydz + 1;
 		
-		float b = 
+		double b = 
 			2 * dxdz * (v_start.x - sphere.coords.x) +
 			2 * dydz * (v_start.y - sphere.coords.y) +
 			2 * (v_start.z - sphere.coords.z);
 
-		float c = 
+		double c = 
 			(v_start.x - sphere.coords.x) * (v_start.x - sphere.coords.x) +
 			(v_start.y - sphere.coords.y) * (v_start.y - sphere.coords.y) +
 			(v_start.z - sphere.coords.z) * (v_start.z - sphere.coords.z) - sphere.radius * sphere.radius;
 
 		// ISAK: There wasn't any need to recalculate this multiple times
-		float rootContent = b * b - 4 * a * c;
+		double rootContent = b * b - 4 * a * c;
 
 		// There exists no intersections (no real answer)
 		if (rootContent < 0) return false;
 
-		float z1 = (-b + sqrt(rootContent)) / (2 * a);
-		float z2 = (-b - sqrt(rootContent)) / (2 * a);
+		double z1 = (-b + sqrt(rootContent)) / (2 * a);
+		double z2 = (-b - sqrt(rootContent)) / (2 * a);
 
 		Vec3D v_alternative1 = { z1 * dxdz, z1 * dydz, z1 };
 		AddToVec3D(&v_alternative1, v_start);
@@ -398,8 +397,8 @@ private:
 		AddToVec3D(&v_alternative2, v_start);
 
 		// Check which intersection is the closest and choose that one
-		float dist1 = DistanceSquared3D(v_alternative1, v_start);
-		float dist2 = DistanceSquared3D(v_alternative2, v_start);
+		double dist1 = DistanceSquared3D(v_alternative1, v_start);
+		double dist2 = DistanceSquared3D(v_alternative2, v_start);
 
 		bool dist1Closest = dist1 < dist2;
 
@@ -459,25 +458,25 @@ private:
 			v_normal = { DotProduct3D(v_normal, i_Hat), DotProduct3D(v_normal, j_Hat), DotProduct3D(v_normal, k_Hat) };
 
 			// UV coordinates
-			float u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
-			float v = 0.5 - asin(v_normal.y) / PI;
+			double u = 0.5 + atan2(v_normal.x, v_normal.z) / TAU;
+			double v = 0.5 - asin(v_normal.y) / PI;
 
-			float textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
-			float textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
+			double textureX = Lerp(sphere.textureCorner1.x, sphere.textureCorner2.x, u);
+			double textureY = Lerp(sphere.textureCorner1.y, sphere.textureCorner2.y, v);
 
 			if (sphere.texture != nullptr)
 			{
 				// Interpolating between assigned texture coordinates
 				olc::Pixel texelColor = sphere.texture->Sample(textureX, textureY);
 
-				*v_intersectionColor = { (float)texelColor.r, (float)texelColor.g, (float)texelColor.b };
+				*v_intersectionColor = { (double)texelColor.r, (double)texelColor.g, (double)texelColor.b };
 			}
 			if (sphere.normalMap != nullptr)
 			{
 				olc::Pixel normalMapColor = sphere.normalMap->Sample(textureX, textureY);
 
 				// Converting the color in the normalMap to an actual unit vector
-				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
+				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ double(normalMapColor.r) * 2 - 255.0f, double(normalMapColor.b) * 2 - 255.0f, double(normalMapColor.g) * 2 - 255.0f });
 
 				// Calculating tangents of the sphere
 				Vec3D v_sidewaysTangent = ReturnNormalizedVec3D({ -v_normal.z, 0, v_normal.x });
@@ -511,7 +510,7 @@ private:
 
 		// how much the plane is offseted in the direction of the planeNormal
 		// a negative value means it's offseted in the opposite direction of the planeNormal
-		float f_trianglePlaneOffset = DotProduct3D(v_triangleNormal, triangle.vertices[0]);
+		double f_trianglePlaneOffset = DotProduct3D(v_triangleNormal, triangle.vertices[0]);
 
 		Vec3D v_trianglePlaneIntersection = LinePlaneIntersection(v_start, v_direction, v_triangleNormal, f_trianglePlaneOffset);
 
@@ -582,14 +581,14 @@ private:
 			{
 				olc::Pixel texelColor = triangle.texture->Sample(textureCoordinates.x, textureCoordinates.y);
 
-				*v_intersectionColor = { float(texelColor.r), float(texelColor.g), float(texelColor.b) };
+				*v_intersectionColor = { double(texelColor.r), double(texelColor.g), double(texelColor.b) };
 			}
 			if (triangle.normalMap != nullptr)
 			{
 				olc::Pixel normalMapColor = triangle.normalMap->Sample(textureCoordinates.x, textureCoordinates.y);
 
 				// Converting the color in the normalMap to an actual unit vector
-				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ float(normalMapColor.r) * 2 - 255.0f, float(normalMapColor.b) * 2 - 255.0f, float(normalMapColor.g) * 2 - 255.0f });
+				Vec3D v_normalMapNormal = ReturnNormalizedVec3D({ double(normalMapColor.r) * 2 - 255.0f, double(normalMapColor.b) * 2 - 255.0f, double(normalMapColor.g) * 2 - 255.0f });
 
 				// Calculating tangents of the triangle for finding the normal in object space
 
@@ -645,23 +644,35 @@ private:
 		return true;
 	}
 
-	Vec3D LinePlaneIntersection(Vec3D v_start, Vec3D v_direction, Vec3D v_planeNormal, float f_planeOffset)
+	Vec3D LinePlaneIntersection(Vec3D v_start, Vec3D v_direction, Vec3D v_planeNormal, double f_planeOffset)
 	{
-		float f_deltaOffset = DotProduct3D(v_start, v_planeNormal);
+		double f_deltaOffset = DotProduct3D(v_start, v_planeNormal);
 
 		f_planeOffset -= f_deltaOffset;
 
-		float f_scalingFactor = f_planeOffset / DotProduct3D(v_direction, v_planeNormal);
+		double f_scalingFactor = f_planeOffset / DotProduct3D(v_direction, v_planeNormal);
 
 		return AddVec3D(VecScalarMultiplication3D(v_direction, f_scalingFactor), v_start);
 	}
+
+	enum ScatteringType
+	{
+		LAMBERTIAN,
+		SPECULAR,
+		TRANSMISSIVE
+	};
 
 	Vec3D CalculateLighting_PathTracing(Vec3D v_textureColor, Material material, Quaternion q_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount, std::mt19937* randomEngine)
 	{
 		Vec3D v_outgoingLightColor = ConusProduct(v_textureColor, material.emittance);
 
-		float refractionIndex1 = REFRACTION_INDEX_AIR;
-		float refractionIndex2 = material.refractionIndex;
+		if (i_bounceCount > MAX_BOUNCES)
+		{
+			return v_outgoingLightColor;
+		}
+
+		double refractionIndex1 = REFRACTION_INDEX_AIR;
+		double refractionIndex2 = material.refractionIndex;
 		Vec3D attenuation = { 0, 0, 0 };
 
 		if (q_surfaceNormal.realPart == -1)
@@ -671,12 +682,62 @@ private:
 			v_outgoingLightColor = ZERO_VEC3D;
 		}
 
-		if (i_bounceCount > MAX_BOUNCES)
+		ScaleVec3D(&v_incomingDirection, -1);
+
+		// Scale the normal to be oriented in the hemisphere the material was hit from
+		ScaleVec3D(&(q_surfaceNormal.vecPart), q_surfaceNormal.realPart);
+
+		Vec3D v_outgoingDirection;
+		ScatteringType scatteringType;
+
+		Vec3D v_bisectorVector;
+
+		double randNumber = uniform_zero_to_one(*randomEngine);
+
+		if (randNumber < 0.33333)
 		{
-			return v_outgoingLightColor;
+			scatteringType = LAMBERTIAN;
+
+			Vec3D v_tangent = ReturnNormalizedVec3D(SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart))));
+
+			Matrix3D transformationMatrix =
+			{
+				v_tangent,
+				q_surfaceNormal.vecPart,
+				CrossProduct(q_surfaceNormal.vecPart, v_tangent)
+			};
+
+			double randVariable = uniform_zero_to_one(*randomEngine);
+			double theta = uniform_zero_to_one(*randomEngine) * TAU;
+
+			double r = sqrt(randVariable);
+
+			v_outgoingDirection = VecMatrixMultiplication3D({ r * cos(theta), sqrt(1 - randVariable), r * sin(theta) }, transformationMatrix);
+		}
+		else if (randNumber < 0.66666)
+		{
+			scatteringType = SPECULAR;
+
+			v_bisectorVector = BisectorVector(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+
+			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_bisectorVector, 2 * DotProduct3D(v_incomingDirection, v_bisectorVector)), v_incomingDirection);
+		}
+		else
+		{
+			scatteringType = TRANSMISSIVE;
+
+			v_bisectorVector = BisectorVector(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+
+			double n = refractionIndex1 / refractionIndex2;
+
+			double incomingDotBisector = DotProduct3D(v_incomingDirection, v_bisectorVector);
+
+			double bisectorScalar = n * incomingDotBisector - Sign(DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart)) * sqrt(Max(1 + n * (incomingDotBisector * incomingDotBisector - 1), 0));
+
+			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_bisectorVector, bisectorScalar), VecScalarMultiplication3D(v_incomingDirection, n));
 		}
 
-		Vec3D v_outgoingDirection = ReturnNormalizedVec3D(RandomVec_InUnitSphere(randomEngine));
+		NormalizeVec3D(&v_outgoingDirection);
 
 		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_outgoingDirection, OFFSET_DISTANCE));
 
@@ -685,9 +746,6 @@ private:
 			// The ray is going into the object
 			attenuation = material.attenuation;
 		}
-
-		// Scale the normal to be oriented in the hemisphere the material was hit from
-		ScaleVec3D(&(q_surfaceNormal.vecPart), q_surfaceNormal.realPart);
 
 		Vec3D v_nextIntersection = ZERO_VEC3D;
 		Vec3D v_nextTextureColor = ZERO_VEC3D;
@@ -705,28 +763,39 @@ private:
 			Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0f / 255);
 			Vec3D v_specularTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.specularTint), 1.0f / 255);
 
-			float distance = Distance3D(v_intersection, v_nextIntersection);
+			double distance = Distance3D(v_intersection, v_nextIntersection);
 
 			attenuation = { exp(-attenuation.x * distance), exp(-attenuation.y * distance), exp(-attenuation.z * distance) };
 
 			v_incomingLightColor = ConusProduct(v_incomingLightColor, attenuation);
 
-			//reflection
-			AddToVec3D(
-				&v_outgoingLightColor,
-				VecScalarMultiplication3D(
-					ConusProduct(v_incomingLightColor, BRDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, material.roughness, v_diffuseTint, v_specularTint)),
-					DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart) * 2 * TAU
-				)
-			);
-			
-			//transmission
-			AddToVec3D(
-				&v_outgoingLightColor,
-				VecScalarMultiplication3D(
-					v_incomingLightColor, BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, material.roughness) * Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 2 * TAU
-				)
-			);
+			if (scatteringType == LAMBERTIAN)
+			{
+				AddToVec3D(
+					&v_outgoingLightColor,
+					VecScalarMultiplication3D(
+						ConusProduct(v_incomingLightColor, BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint)), 3 * PI
+					)
+				);
+			}
+			else if (scatteringType == SPECULAR)
+			{
+				AddToVec3D(
+					&v_outgoingLightColor,
+					VecScalarMultiplication3D(
+						ConusProduct(v_incomingLightColor, BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_bisectorVector, refractionIndex1, refractionIndex2, material.roughness, v_specularTint)), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI
+					)
+				);
+			}
+			else
+			{
+				AddToVec3D(
+					&v_outgoingLightColor,
+					VecScalarMultiplication3D(
+						v_incomingLightColor, BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_bisectorVector, refractionIndex1, refractionIndex2, material.roughness) * Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI
+					)
+				);
+			}
 		}
 
 		return v_outgoingLightColor;
@@ -823,72 +892,90 @@ private:
 	}
 
 	// Cook-Torrance BRDF with GGX distribution function and GGX geometry function
-	Vec3D BRDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, float refractionIndex1, float refractionIndex2, float roughness, Vec3D v_diffuseTint, Vec3D v_specularTint)
+	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2, double roughness, Vec3D v_specularTint)
 	{
-		ScaleVec3D(&v_incomingDirection, -1);
+		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
 
-		Vec3D v_bisectorVector = ReturnNormalizedVec3D(Lerp3D(v_incomingDirection, v_outgoingDirection, 0.5));
+		// Some terms are not included because they are cancelled out bt the PDF
+		double specularTerm = Abs(DotProduct3D(v_incomingDirection, v_bisectorVector)) * fresnelFactor * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) /
+			(Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_bisectorVector, v_normal)));
 
-		float fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
-
-		float diffuseTerm = Chi(DotProduct3D(v_bisectorVector, v_normal)) * (1 - fresnelFactor) / PI;
-
-		float specularTerm = fresnelFactor * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) * Distribution(v_normal, v_bisectorVector, roughness) /
-			(4 * DotProduct3D(v_incomingDirection, v_normal) * DotProduct3D(v_outgoingDirection, v_normal));
-
-		return AddVec3D(VecScalarMultiplication3D(v_diffuseTint, diffuseTerm), VecScalarMultiplication3D(v_specularTint, specularTerm));
+		return VecScalarMultiplication3D(v_specularTint, specularTerm);
 	}
 
-	float Chi(float x)
+	Vec3D BRDF_LAMBERTIAN(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, double refractionIndex1, double refractionIndex2, Vec3D v_diffuseTint)
+	{
+		Vec3D v_bisectorVector = ReturnNormalizedVec3D(Lerp3D(v_incomingDirection, v_outgoingDirection, 0.5));
+
+		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
+
+		double diffuseTerm = Chi(DotProduct3D(v_bisectorVector, v_normal)) * (1 - fresnelFactor) / PI;
+
+		return VecScalarMultiplication3D(v_diffuseTint, diffuseTerm);
+	}
+
+	double Chi(double x)
 	{
 		return x > 0 ? 1 : 0;
 	}
 
-	float Distribution(Vec3D v_normal, Vec3D v_bisectorVector, float roughness)
+	double Fresnel(Vec3D v_incomingDirection, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2)
 	{
-		float bisectDotNormal = DotProduct3D(v_bisectorVector, v_normal);
-		float bisectDotNormal2 = bisectDotNormal * bisectDotNormal;
-		float roughness2 = roughness * roughness;
+		double c = Abs(DotProduct3D(v_incomingDirection, v_bisectorVector));
 
-		return (Chi(DotProduct3D(v_bisectorVector, v_normal)) * roughness2) / (PI * Square(bisectDotNormal2 * (roughness2 + (1 - bisectDotNormal2) / bisectDotNormal2)));
+		double g = sqrt(Max((refractionIndex2 * refractionIndex2) / (refractionIndex1 * refractionIndex1) - 1 + c * c, 0));
+
+		return 0.5 * Square((g - c) / (g + c)) * (1 + Square(c * (g + c) - 1) / Square(c * (g - c) + 1));
 	}
 
-	float Fresnel(Vec3D v_incomingDirection, Vec3D v_bisectorVector, float refractionIndex1, float refractionIndex2)
-	{
-		float c = DotProduct3D(v_incomingDirection, v_bisectorVector);
-
-		float g = sqrt(Max((refractionIndex2 * refractionIndex2) / (refractionIndex1 * refractionIndex1) - 1 + c * c, 0));
-
-		return 0.5 * (Square(g - c) / Square(g + c)) * (1 + Square(c * (g + c) - 1) / Square(c * (g - c) + 1));
-	}
-
-	float GeometryBidirectional(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, float roughness)
+	double GeometryBidirectional(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double roughness)
 	{
 		return GeometryMonodirectional(v_incomingDirection, v_normal, v_bisectorVector, roughness) * GeometryMonodirectional(v_outgoingDirection, v_normal, v_bisectorVector, roughness);
 	}
 
-	float GeometryMonodirectional(Vec3D vec, Vec3D v_normal, Vec3D v_bisectorVector, float roughness)
+	double GeometryMonodirectional(Vec3D vec, Vec3D v_normal, Vec3D v_bisectorVector, double roughness)
 	{
-		float VecDotNormal = DotProduct3D(vec, v_normal);
-		float VecDotNormal2 = VecDotNormal * VecDotNormal;
-		float a = 1.0f / (roughness * sqrt(1 - VecDotNormal2) / VecDotNormal);
-		float a2 = a * a;
+		double VecDotNormal = DotProduct3D(vec, v_normal);
+		double VecDotNormal2 = VecDotNormal * VecDotNormal;
+		double a2 = VecDotNormal2 / (roughness * roughness * (1 - VecDotNormal2)); // a squared
 
-		return Chi(DotProduct3D(vec, v_bisectorVector) / DotProduct3D(vec, v_normal)) * (a < 1.59 ? (3.535 * a + 2.181 * a2) / (1 + 2.276 * a + 2.577 * a2) : 1);
+		return Chi(DotProduct3D(vec, v_bisectorVector) / DotProduct3D(vec, v_normal)) * 2 / (1 + sqrt(1 + 1 / a2));
 	}
 
-	float BTDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, float refractionIndex1, float refractionIndex2, float roughness)
+	double BTDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2, double roughness)
 	{
-		ScaleVec3D(&v_normal, -1);
+		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
 
-		Vec3D v_bisectorVector = ReturnNormalizedVec3D(Lerp3D(v_incomingDirection, v_outgoingDirection, 0.5));
+		return Abs(DotProduct3D(v_incomingDirection, v_bisectorVector)) * (1 - fresnelFactor) * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) / (Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_bisectorVector, v_normal)));
+	}
 
-		float incomingDotBisector = DotProduct3D(v_incomingDirection, v_bisectorVector);
-		float outgoingDotBisector = DotProduct3D(v_outgoingDirection, v_bisectorVector);
+	// computing the bisector vector (microscopic normal) used for importance sampling
+	Vec3D BisectorVector(Vec3D v_incomingDirection, Vec3D v_normal, double roughness, std::mt19937* randomEngine)
+	{
+		double randVariable = uniform_zero_to_one(*randomEngine);
 
-		return (incomingDotBisector * outgoingDotBisector) / (DotProduct3D(v_incomingDirection, v_normal) * DotProduct3D(v_outgoingDirection, v_normal)) *
-			(refractionIndex2 * refractionIndex2 * (1 - Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2)) * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) *
-				Distribution(v_normal, v_bisectorVector, roughness)) / Square(refractionIndex1 * incomingDotBisector + refractionIndex2 * outgoingDotBisector);
+		double cosTheta = sqrt((1 - randVariable) / (randVariable * (roughness * roughness - 1) + 1));
+		double sinTheta = sqrt(1 - cosTheta * cosTheta);
+
+		double randAngle = uniform_zero_to_one(*randomEngine) * TAU;
+
+		Vec3D v_bisectorVector = { sinTheta * cos(randAngle), cosTheta, sinTheta * sin(randAngle) };
+
+		Vec3D v_tangent = ReturnNormalizedVec3D(SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_normal, DotProduct3D(v_incomingDirection, v_normal))));
+
+		Matrix3D transformationMatrix =
+		{
+			v_tangent,
+			v_normal,
+			CrossProduct(v_normal, v_tangent)
+		};
+
+		return VecMatrixMultiplication3D(v_bisectorVector, transformationMatrix);
+	}
+
+	double Sign(double x)
+	{
+		return x >= 0 ? 1 : -1;
 	}
 
 	/*Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
@@ -901,13 +988,13 @@ private:
 		// Soft shadows
 		for (int i = 0; i < g_lights.size(); i++)
 		{
-			float notBlockedProportion = 0;
+			double notBlockedProportion = 0;
 
 			for (int j = 0; j < SAMPLES_PER_RAY; j++)
 			{
-				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
+				double randX = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
+				double randY = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
+				double randZ = double(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / double(int64_t(randEngine.max()) / 2);
 				Vec3D v_displacement = { randX, randY, randZ };
 				NormalizeVec3D(&v_displacement);
 				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
@@ -920,7 +1007,7 @@ private:
 
 			notBlockedProportion /= SAMPLES_PER_RAY;
 
-			float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
+			double distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
 
 			//v_objectColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
 			Vec3D lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
@@ -945,9 +1032,9 @@ private:
 
 		do
 		{
-			float randX = uniformDistribution(*randomEngine);
-			float randY = uniformDistribution(*randomEngine);
-			float randZ = uniformDistribution(*randomEngine);
+			double randX = uniformDistribution(*randomEngine);
+			double randY = uniformDistribution(*randomEngine);
+			double randZ = uniformDistribution(*randomEngine);
 
 			randPoint = { randX, randY, randZ };
 		} while (VecLengthSquared(randPoint) > 1);

@@ -11,12 +11,12 @@
 
 struct Vec2D
 {
-	float x, y;
+	double x, y;
 };
 
 struct Vec3D
 {
-	float x, y, z;
+	double x, y, z;
 };
 
 struct Matrix3D
@@ -26,7 +26,7 @@ struct Matrix3D
 
 struct Quaternion
 {
-	float realPart;
+	double realPart;
 	Vec3D vecPart;
 };
 
@@ -36,40 +36,40 @@ struct Quaternion
 
 // Methods for numbers
 
-float Abs(float a)
+double Abs(double a)
 {
 	return (a >= 0) ? a : -a;
 }
 
-float Min(float a, float b)
+double Min(double a, double b)
 {
 	return (a < b) ? a : b;
 }
 
-float Max(float a, float b)
+double Max(double a, double b)
 {
 	return (a > b) ? a : b;
 }
 
-void Clamp(float* valueToClamp, float lowerBound, float upperBound)
+void Clamp(double* valueToClamp, double lowerBound, double upperBound)
 {
 	// Clamps a value between two other values. e.g: Clamp(7, 5, 10) is 7 because its already between 5 and 10
 	*valueToClamp = Min(upperBound, Max(lowerBound, *valueToClamp));
 }
 
-float Clamp(float valueToClamp, float lowerBound, float upperBound)
+double Clamp(double valueToClamp, double lowerBound, double upperBound)
 {
 	// Clamps a value between two other values. e.g: Clamp(7, 5, 10) is 7 because its already between 5 and 10
 	return Min(upperBound, Max(lowerBound, valueToClamp));
 }
 
-float Lerp(float startValue, float endValue, float t)
+double Lerp(double startValue, double endValue, double t)
 {
 	// Linearly interpolate between two numbers
 	return startValue + (endValue - startValue) * t;
 }
 
-float Square(float a)
+double Square(double a)
 {
 	return a * a;
 }
@@ -100,41 +100,41 @@ Vec2D SubtractVec2D(Vec2D v1, Vec2D v2)
 	return { v1.x - v2.x, v1.y - v2.y };
 }
 
-void ScaleVec2D(Vec2D* v, float scalar)
+void ScaleVec2D(Vec2D* v, double scalar)
 {
 	v->x *= scalar;
 	v->y *= scalar;
 }
 
-Vec2D VecScalarMultiplication2D(Vec2D v, float scalar)
+Vec2D VecScalarMultiplication2D(Vec2D v, double scalar)
 {
 	return { v.x * scalar, v.y * scalar };
 }
 
-float VecLength2D(Vec2D v)
+double VecLength2D(Vec2D v)
 {
 	return sqrt(v.x * v.x + v.y * v.y);
 }
 
-float Distance2D(Vec2D v1, Vec2D v2)
+double Distance2D(Vec2D v1, Vec2D v2)
 {
 	return sqrt((v2.x - v1.x) * (v2.x - v1.x) + (v2.y - v1.y) * (v2.y - v1.y));
 }
 
 void NormalizeVec2D(Vec2D* v)
 {
-	float inverseVectorLength = 1 / sqrt(v->x * v->x + v->y * v->y);
+	double inverseVectorLength = 1 / sqrt(v->x * v->x + v->y * v->y);
 
 	v->x *= inverseVectorLength;
 	v->y *= inverseVectorLength;
 }
 
-float DotProduct2D(Vec2D v1, Vec2D v2)
+double DotProduct2D(Vec2D v1, Vec2D v2)
 {
 	return v1.x * v2.x + v1.y * v2.y;
 }
 
-Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, float t)
+Vec2D Lerp2D(Vec2D startVector, Vec2D endVector, double t)
 {
 	Vec2D result;
 
@@ -172,41 +172,41 @@ inline Vec3D SubtractVec3D(Vec3D v1, Vec3D v2)
 	return { v1.x - v2.x, v1.y - v2.y, v1.z - v2.z };
 }
 
-inline void ScaleVec3D(Vec3D* v, float scalar)
+inline void ScaleVec3D(Vec3D* v, double scalar)
 {
 	v->x *= scalar;
 	v->y *= scalar;
 	v->z *= scalar;
 }
 
-inline Vec3D VecScalarMultiplication3D(Vec3D v, float scalar)
+inline Vec3D VecScalarMultiplication3D(Vec3D v, double scalar)
 {
 	return { v.x * scalar, v.y * scalar, v.z * scalar };
 }
 
-float VecLength3D(Vec3D v)
+double VecLength3D(Vec3D v)
 {
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-float VecLengthSquared(Vec3D v)
+double VecLengthSquared(Vec3D v)
 {
 	return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-float Distance3D(Vec3D v1, Vec3D v2)
+double Distance3D(Vec3D v1, Vec3D v2)
 {
 	return sqrt((v2.x - v1.x) * (v2.x - v1.x) + (v2.y - v1.y) * (v2.y - v1.y) + (v2.z - v1.z) * (v2.z - v1.z));
 }
 
-float DistanceSquared3D(Vec3D v1, Vec3D v2)
+double DistanceSquared3D(Vec3D v1, Vec3D v2)
 {
 	return (v2.x - v1.x) * (v2.x - v1.x) + (v2.y - v1.y) * (v2.y - v1.y) + (v2.z - v1.z) * (v2.z - v1.z);
 }
 
 void NormalizeVec3D(Vec3D* v)
 {
-	float inverseVectorLength = 1 / sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+	double inverseVectorLength = 1 / sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
 
 	v->x *= inverseVectorLength;
 	v->y *= inverseVectorLength;
@@ -215,12 +215,12 @@ void NormalizeVec3D(Vec3D* v)
 
 Vec3D ReturnNormalizedVec3D(Vec3D v)
 {
-	float inverseVectorLength = 1 / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+	double inverseVectorLength = 1 / sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
 	return { v.x * inverseVectorLength, v.y * inverseVectorLength, v.z * inverseVectorLength };
 }
 
-inline float DotProduct3D(Vec3D v1, Vec3D v2)
+inline double DotProduct3D(Vec3D v1, Vec3D v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
@@ -236,7 +236,7 @@ inline Vec3D ConusProduct(Vec3D a, Vec3D b)
 	return { a.x * b.x, a.y * b.y, a.z * b.z };
 }
 
-inline Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, float t)
+inline Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, double t)
 {
 	Vec3D result;
 
@@ -276,7 +276,7 @@ Matrix3D MatrixMultiplication3D(Matrix3D m1, Matrix3D m2)
 
 Matrix3D InverseMatrix3D(Matrix3D m)
 {
-	float reciprocalDetM = 1 / DotProduct3D(m.i_Hat, CrossProduct(m.j_Hat, m.k_Hat));
+	double reciprocalDetM = 1 / DotProduct3D(m.i_Hat, CrossProduct(m.j_Hat, m.k_Hat));
 
 	Vec3D new_i_Hat;
 	Vec3D new_j_Hat;
@@ -312,7 +312,7 @@ Matrix3D InverseMatrix3D(Matrix3D m)
 // Methods for quaternions
 //
 
-Quaternion CreateRotationQuaternion(Vec3D axis, float angle)
+Quaternion CreateRotationQuaternion(Vec3D axis, double angle)
 {
 	return { cos(angle * 0.5f), VecScalarMultiplication3D(axis, sin(angle * 0.5f)) };
 }
@@ -345,7 +345,7 @@ Quaternion QuaternionMultiplication(Quaternion q1, Quaternion q2, Quaternion q3)
 
 void NormalizeQuaternion(Quaternion* q)
 {
-	float reciprocalLength = 1 / sqrt(q->realPart * q->realPart + q->vecPart.x * q->vecPart.x + q->vecPart.y * q->vecPart.y + q->vecPart.z * q->vecPart.z);
+	double reciprocalLength = 1 / sqrt(q->realPart * q->realPart + q->vecPart.x * q->vecPart.x + q->vecPart.y * q->vecPart.y + q->vecPart.z * q->vecPart.z);
 
 	q->realPart *= reciprocalLength;
 	q->vecPart.x *= reciprocalLength;
