@@ -9,8 +9,9 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define MAX_BOUNCES 15
-#define SAMPLES_PER_PIXEL 200 // for path tracing
+#define SAMPLES_PER_PIXEL 300 // for path tracing
+#define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
+#define MAX_BOUNCES 15 // For distribution ray tracing
 #define SAMPLES_PER_RAY 1 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
@@ -94,13 +95,13 @@ public:
 			// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.15, 15, { 500, 500, 500 } } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 17.5, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Refractive ball
-			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.1, 0.1, 0.1 }, { 0.3, 0.3, 0.3 }, 0.2, 1.52, { 0, 0, 0 } } }
+			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.1, 0.1, 0.1 }, { 0.1, 0.1, 0.1 }, 0.1, 1.52, { 0, 0, 0 } } }
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
 			// Basket ball
@@ -208,7 +209,7 @@ public:
 		}
 #else
 		std::mt19937 randomEngine(seedEngine());
-		RayTracing({ 0, 0 }, { SCREEN_WIDTH, SCREEN_HEIGHT }, randomEngine);
+		RayTracing(0, SCREEN_WIDTH, randomEngine);
 #endif
 		std::cout << "\a" << std::endl;
 
@@ -234,21 +235,25 @@ private:
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = SCREEN_HEIGHT - (y + SCREEN_HEIGHT * 0.5f);
 
-				Vec3D pixelColor = ZERO_VEC3D;
+				// We store three potential pixel colors and then take the median to remove firefly noise
+				Vec3D potentialPixelColors[3] = { ZERO_VEC3D, ZERO_VEC3D, ZERO_VEC3D };
 
-				for (int i = 0; i < SAMPLES_PER_PIXEL; i++)
+				for (int i = 0; i < 3; i++)
 				{
-					// For anti-aliasing
-					Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
+					for (int j = 0; j < SAMPLES_PER_PIXEL / 3; j++)
+					{
+						// For anti-aliasing
+						Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
 
-					NormalizeVec3D(&v_jitteredDirection);
+						NormalizeVec3D(&v_jitteredDirection);
 
-					AddToVec3D(&pixelColor, RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
+						AddToVec3D(&(potentialPixelColors[i]), RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
+					}
 				}
 
-				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
+				Vec3D pixelColor = MedianColor(potentialPixelColors[0], potentialPixelColors[1], potentialPixelColors[2]);
 
-				//std::cout << pixelColor.x << " " << pixelColor.y << " " << pixelColor.z << std::endl;
+				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL / 3));
 
 				pixelColor.x = Min(pixelColor.x, 255.0f);
 				pixelColor.y = Min(pixelColor.y, 255.0f);
@@ -263,7 +268,7 @@ private:
 				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
 #if PATH_TRACING == 1
-			//std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
+			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
 #endif
 		}
 	}
@@ -281,7 +286,7 @@ private:
 		{
 #if PATH_TRACING == 1
 			v_textureColor = CalculateLighting_PathTracing(
-				v_textureColor, material, q_surfaceNormal, v_direction, v_intersection, 0, randomEngine
+				v_textureColor, material, q_surfaceNormal, v_direction, v_intersection, { 1, 1, 1 }, randomEngine
 			);
 #else
 			v_textureColor = CalculateLighting_DistributionTracing(
@@ -291,6 +296,28 @@ private:
 		}
 
 		return v_textureColor;
+	}
+
+	Vec3D MedianColor(Vec3D color1, Vec3D color2, Vec3D color3)
+	{
+		double colorDistance1 = Max(color1.x, Max(color1.y, color1.z));
+		double colorDistance2 = Max(color2.x, Max(color2.y, color2.z));
+		double colorDistance3 = Max(color3.x, Max(color3.y, color3.z));
+
+		if (colorDistance1 > colorDistance2)
+		{
+			SwapVec3D(&color1, &color2);
+		}
+		if (colorDistance2 > colorDistance3)
+		{
+			SwapVec3D(&color2, &color3);
+		}
+		if (colorDistance1 > colorDistance2)
+		{
+			SwapVec3D(&color1, &color2);
+		}
+
+		return color2;
 	}
 
 	double LINEAR_TO_SRGB(double l)
@@ -666,11 +693,14 @@ private:
 		TRANSMISSIVE
 	};
 
-	Vec3D CalculateLighting_PathTracing(Vec3D v_textureColor, Material material, Quaternion q_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount, std::mt19937* randomEngine)
+	Vec3D CalculateLighting_PathTracing(Vec3D v_textureColor, Material material, Quaternion q_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, Vec3D accumulatedAttenuation, std::mt19937* randomEngine)
 	{
 		Vec3D v_outgoingLightColor = ConusProduct(v_textureColor, material.emittance);
 
-		if (i_bounceCount > MAX_BOUNCES)
+		double survivalProbability = Max(Sigmoid(2 * Max(accumulatedAttenuation.x, Max(accumulatedAttenuation.y, accumulatedAttenuation.z))), 0.05);
+
+		// Randomly terminate paths with russian roulette
+		if (uniform_zero_to_one(*randomEngine) > survivalProbability)
 		{
 			return v_outgoingLightColor;
 		}
@@ -694,7 +724,7 @@ private:
 		Vec3D v_outgoingDirection;
 		ScatteringType scatteringType;
 
-		Vec3D v_bisectorVector;
+		Vec3D v_microscopicNormal;
 
 		double randNumber = uniform_zero_to_one(*randomEngine);
 
@@ -722,23 +752,23 @@ private:
 		{
 			scatteringType = SPECULAR;
 
-			v_bisectorVector = BisectorVector(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+			v_microscopicNormal = MicroscopicNormal(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
 
-			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_bisectorVector, 2 * DotProduct3D(v_incomingDirection, v_bisectorVector)), v_incomingDirection);
+			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, 2 * DotProduct3D(v_incomingDirection, v_microscopicNormal)), v_incomingDirection);
 		}
 		else
 		{
 			scatteringType = TRANSMISSIVE;
 
-			v_bisectorVector = BisectorVector(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+			v_microscopicNormal = MicroscopicNormal(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
 
 			double n = refractionIndex1 / refractionIndex2;
 
-			double incomingDotBisector = DotProduct3D(v_incomingDirection, v_bisectorVector);
+			double incomingDotBisector = DotProduct3D(v_incomingDirection, v_microscopicNormal);
 
 			double bisectorScalar = n * incomingDotBisector - Sign(DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart)) * sqrt(Max(1 + n * (incomingDotBisector * incomingDotBisector - 1), 0));
 
-			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_bisectorVector, bisectorScalar), VecScalarMultiplication3D(v_incomingDirection, n));
+			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, bisectorScalar), VecScalarMultiplication3D(v_incomingDirection, n));
 		}
 
 		NormalizeVec3D(&v_outgoingDirection);
@@ -760,46 +790,42 @@ private:
 
 		if (intersectionExists)
 		{
-			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(
-				v_nextTextureColor, nextMaterial, q_nextNormal, v_outgoingDirection, v_nextIntersection, i_bounceCount + 1, randomEngine
-			);
+			Vec3D weight = ZERO_VEC3D;
 
 			Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0f / 255);
 			Vec3D v_specularTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.specularTint), 1.0f / 255);
+
+			if (scatteringType == LAMBERTIAN)
+			{
+				weight = VecScalarMultiplication3D(BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint), 3 * PI);
+			}
+			else if (scatteringType == SPECULAR)
+			{
+				weight = VecScalarMultiplication3D(BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness, v_specularTint), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+			}
+			else
+			{
+				weight = VecScalarMultiplication3D(BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+			}
 
 			double distance = Distance3D(v_intersection, v_nextIntersection);
 
 			attenuation = { exp(-attenuation.x * distance), exp(-attenuation.y * distance), exp(-attenuation.z * distance) };
 
-			v_incomingLightColor = ConusProduct(v_incomingLightColor, attenuation);
+			weight = ConusProduct(weight, attenuation);
 
-			if (scatteringType == LAMBERTIAN)
-			{
-				AddToVec3D(
-					&v_outgoingLightColor,
-					VecScalarMultiplication3D(
-						ConusProduct(v_incomingLightColor, BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint)), 3 * PI
-					)
-				);
-			}
-			else if (scatteringType == SPECULAR)
-			{
-				AddToVec3D(
-					&v_outgoingLightColor,
-					VecScalarMultiplication3D(
-						ConusProduct(v_incomingLightColor, BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_bisectorVector, refractionIndex1, refractionIndex2, material.roughness, v_specularTint)), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI
-					)
-				);
-			}
-			else
-			{
-				AddToVec3D(
-					&v_outgoingLightColor,
-					VecScalarMultiplication3D(
-						v_incomingLightColor, BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_bisectorVector, refractionIndex1, refractionIndex2, material.roughness) * Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI
-					)
-				);
-			}
+			accumulatedAttenuation = ConusProduct(accumulatedAttenuation, weight);
+
+			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(
+				v_nextTextureColor, nextMaterial, q_nextNormal, v_outgoingDirection, v_nextIntersection, accumulatedAttenuation, randomEngine
+			);
+
+			v_incomingLightColor = { Min(v_incomingLightColor.x, MAX_COLOR_VALUE), Min(v_incomingLightColor.y, MAX_COLOR_VALUE), Min(v_incomingLightColor.z, MAX_COLOR_VALUE) }; // Introduces bias. To avoid bias MAX_COLOR_VALUE should be very high
+
+			// Add the energy that is lost by randomly terminating paths
+			ScaleVec3D(&v_incomingLightColor, 1.0 / survivalProbability);
+
+			AddToVec3D(&v_outgoingLightColor, ConusProduct(v_incomingLightColor, weight));
 		}
 
 		return v_outgoingLightColor;
@@ -896,13 +922,13 @@ private:
 	}
 
 	// Cook-Torrance BRDF with GGX distribution function and GGX geometry function
-	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2, double roughness, Vec3D v_specularTint)
+	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness, Vec3D v_specularTint)
 	{
-		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
+		double fresnelFactor = Fresnel(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
 
 		// Some terms are not included because they are cancelled out bt the PDF
-		double specularTerm = Abs(DotProduct3D(v_incomingDirection, v_bisectorVector)) * fresnelFactor * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) /
-			(Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_bisectorVector, v_normal)));
+		double specularTerm = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal)) * fresnelFactor * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_microscopicNormal, roughness) /
+			(Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_microscopicNormal, v_normal)));
 
 		return VecScalarMultiplication3D(v_specularTint, specularTerm);
 	}
@@ -923,38 +949,40 @@ private:
 		return x > 0 ? 1 : 0;
 	}
 
-	double Fresnel(Vec3D v_incomingDirection, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2)
+	double Fresnel(Vec3D v_incomingDirection, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2)
 	{
-		double c = Abs(DotProduct3D(v_incomingDirection, v_bisectorVector));
+		double c = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal));
 
 		double g = sqrt(Max((refractionIndex2 * refractionIndex2) / (refractionIndex1 * refractionIndex1) - 1 + c * c, 0));
 
 		return 0.5 * Square((g - c) / (g + c)) * (1 + Square(c * (g + c) - 1) / Square(c * (g - c) + 1));
 	}
 
-	double GeometryBidirectional(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double roughness)
+	double GeometryBidirectional(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double roughness)
 	{
-		return GeometryMonodirectional(v_incomingDirection, v_normal, v_bisectorVector, roughness) * GeometryMonodirectional(v_outgoingDirection, v_normal, v_bisectorVector, roughness);
+		return GeometryMonodirectional(v_incomingDirection, v_normal, v_microscopicNormal, roughness) * GeometryMonodirectional(v_outgoingDirection, v_normal, v_microscopicNormal, roughness);
 	}
 
-	double GeometryMonodirectional(Vec3D vec, Vec3D v_normal, Vec3D v_bisectorVector, double roughness)
+	double GeometryMonodirectional(Vec3D vec, Vec3D v_normal, Vec3D v_microscopicNormal, double roughness)
 	{
 		double VecDotNormal = DotProduct3D(vec, v_normal);
 		double VecDotNormal2 = VecDotNormal * VecDotNormal;
 		double a2 = VecDotNormal2 / (roughness * roughness * (1 - VecDotNormal2)); // a squared
 
-		return Chi(DotProduct3D(vec, v_bisectorVector) / DotProduct3D(vec, v_normal)) * 2 / (1 + sqrt(1 + 1 / a2));
+		return Chi(DotProduct3D(vec, v_microscopicNormal) / DotProduct3D(vec, v_normal)) * 2 / (1 + sqrt(1 + 1 / a2));
 	}
 
-	double BTDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_bisectorVector, double refractionIndex1, double refractionIndex2, double roughness)
+	Vec3D BTDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness)
 	{
-		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
+		double fresnelFactor = Fresnel(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
 
-		return Abs(DotProduct3D(v_incomingDirection, v_bisectorVector)) * (1 - fresnelFactor) * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_bisectorVector, roughness) / (Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_bisectorVector, v_normal)));
+		double btdf = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal)) * (1 - fresnelFactor) * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_microscopicNormal, roughness) / (Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_microscopicNormal, v_normal)));
+
+		return { btdf, btdf, btdf };
 	}
 
 	// computing the bisector vector (microscopic normal) used for importance sampling
-	Vec3D BisectorVector(Vec3D v_incomingDirection, Vec3D v_normal, double roughness, std::mt19937* randomEngine)
+	Vec3D MicroscopicNormal(Vec3D v_incomingDirection, Vec3D v_normal, double roughness, std::mt19937* randomEngine)
 	{
 		double randVariable = uniform_zero_to_one(*randomEngine);
 
@@ -975,11 +1003,6 @@ private:
 		};
 
 		return VecMatrixMultiplication3D(v_bisectorVector, transformationMatrix);
-	}
-
-	double Sign(double x)
-	{
-		return x >= 0 ? 1 : -1;
 	}
 
 	/*Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)

@@ -41,6 +41,11 @@ double Abs(double a)
 	return (a >= 0) ? a : -a;
 }
 
+double Sign(double a)
+{
+	return (a >= 0) ? 1 : -1;
+}
+
 double Min(double a, double b)
 {
 	return (a < b) ? a : b;
@@ -74,6 +79,12 @@ double Square(double a)
 	return a * a;
 }
 
+double Sigmoid(double x)
+{
+	double expTerm = exp(x);
+
+	return (expTerm - 1) / (expTerm + 1);
+}
 //
 // Methods for 2D vectors
 //
@@ -251,6 +262,13 @@ inline Vec3D Lerp3D(Vec3D startVector, Vec3D endVector, double t)
 	result.z = startVector.z + (endVector.z - startVector.z) * t;
 
 	return result;
+}
+
+void SwapVec3D(Vec3D* vec1, Vec3D* vec2)
+{
+	Vec3D temp = *vec1;
+	*vec1 = *vec2;
+	*vec2 = temp;
 }
 
 //
