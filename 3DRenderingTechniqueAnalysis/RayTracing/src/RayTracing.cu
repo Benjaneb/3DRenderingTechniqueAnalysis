@@ -9,8 +9,9 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 300 // for path tracing
-#define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
+#define SAMPLES_PER_PIXEL 200 // for path tracing
+#define FIREFLY_FILTERING 1 // Will make the scene considerably darker for lower samples per pixel
+#define MAX_COLOR_VALUE 15000 // used for reducing fireflies, introduces bias
 #define MAX_BOUNCES 15 // For distribution ray tracing
 #define SAMPLES_PER_RAY 1 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
@@ -235,12 +236,15 @@ private:
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = SCREEN_HEIGHT - (y + SCREEN_HEIGHT * 0.5f);
 
-				// We store three potential pixel colors and then take the median to remove firefly noise
-				Vec3D potentialPixelColors[3] = { ZERO_VEC3D, ZERO_VEC3D, ZERO_VEC3D };
+				Vec3D pixelColor;
 
-				for (int i = 0; i < 3; i++)
+#if FIREFLY_FILTERING == 1
+				// We store two potential pixel colors and then take the lower to reduce firefly noise
+				Vec3D potentialPixelColors[2] = { ZERO_VEC3D, ZERO_VEC3D };
+
+				for (int i = 0; i < 2; i++)
 				{
-					for (int j = 0; j < SAMPLES_PER_PIXEL / 3; j++)
+					for (int j = 0; j < SAMPLES_PER_PIXEL / 2; j++)
 					{
 						// For anti-aliasing
 						Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
@@ -251,9 +255,22 @@ private:
 					}
 				}
 
-				Vec3D pixelColor = MedianColor(potentialPixelColors[0], potentialPixelColors[1], potentialPixelColors[2]);
+				pixelColor = LowerColor(potentialPixelColors[0], potentialPixelColors[1]);
 
-				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL / 3));
+				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL / 2));
+#else
+				for (int i = 0; i < SAMPLES_PER_PIXEL; i++)
+				{
+					// For anti-aliasing
+					Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
+
+					NormalizeVec3D(&v_jitteredDirection);
+
+					AddToVec3D(&pixelColor, RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
+				}
+
+				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
+#endif
 
 				pixelColor.x = Min(pixelColor.x, 255.0f);
 				pixelColor.y = Min(pixelColor.y, 255.0f);
@@ -298,26 +315,19 @@ private:
 		return v_textureColor;
 	}
 
-	Vec3D MedianColor(Vec3D color1, Vec3D color2, Vec3D color3)
+	Vec3D LowerColor(Vec3D color1, Vec3D color2)
 	{
 		double colorDistance1 = Max(color1.x, Max(color1.y, color1.z));
 		double colorDistance2 = Max(color2.x, Max(color2.y, color2.z));
-		double colorDistance3 = Max(color3.x, Max(color3.y, color3.z));
 
-		if (colorDistance1 > colorDistance2)
+		if (colorDistance2 > colorDistance1)
 		{
-			SwapVec3D(&color1, &color2);
+			return color1;
 		}
-		if (colorDistance2 > colorDistance3)
+		else
 		{
-			SwapVec3D(&color2, &color3);
+			return color2;
 		}
-		if (colorDistance1 > colorDistance2)
-		{
-			SwapVec3D(&color1, &color2);
-		}
-
-		return color2;
 	}
 
 	double LINEAR_TO_SRGB(double l)
