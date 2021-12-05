@@ -9,9 +9,9 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 200 // for path tracing
-#define FIREFLY_FILTERING 1 // Will make the scene considerably darker for lower samples per pixel
-#define MAX_COLOR_VALUE 15000 // used for reducing fireflies, introduces bias
+#define SAMPLES_PER_PIXEL 1000 // for path tracing
+#define MEDIAN_FILTERING 1 // used for firefly reduction and denoising, bad for low spp
+#define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
 #define MAX_BOUNCES 15 // For distribution ray tracing
 #define SAMPLES_PER_RAY 1 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
@@ -31,6 +31,8 @@
 #include "ParseOBJ.h"
 
 // Global variables
+
+Vec3D screenBuffer[SCREEN_HEIGHT * SCREEN_WIDTH];
 
 Player g_player;
 
@@ -96,7 +98,7 @@ public:
 			// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 17.5, { 500, 500, 500 } } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, { 0.8, 0.8, 0.8 }, 0.05, 22.5, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Other lightsource
@@ -187,6 +189,29 @@ public:
 
 		Controlls(fElapsedTime);
 
+		StartThreads();
+
+#if MEDIAN_FILTERING == 1
+		MedianFiltering();
+#endif
+
+		for (int y = 0; y < SCREEN_HEIGHT; y++)
+		{
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+			{
+				Vec3D pixelColor = screenBuffer[y * SCREEN_WIDTH + x];
+
+				Draw(x, y, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
+			}
+		}
+
+		std::cout << "\a" << std::endl;
+
+		return true;
+	}
+
+	void StartThreads()
+	{
 #if ASYNC == 1
 		// Screen split up into 4 quadrants running in parallell on seperate threads
 
@@ -212,9 +237,6 @@ public:
 		std::mt19937 randomEngine(seedEngine());
 		RayTracing(0, SCREEN_WIDTH, randomEngine);
 #endif
-		std::cout << "\a" << std::endl;
-
-		return true;
 	}
 
 private:
@@ -236,29 +258,8 @@ private:
 				int screenX = x + SCREEN_WIDTH * 0.5f;
 				int screenY = SCREEN_HEIGHT - (y + SCREEN_HEIGHT * 0.5f);
 
-				Vec3D pixelColor;
+				Vec3D pixelColor = ZERO_VEC3D;
 
-#if FIREFLY_FILTERING == 1
-				// We store two potential pixel colors and then take the lower to reduce firefly noise
-				Vec3D potentialPixelColors[2] = { ZERO_VEC3D, ZERO_VEC3D };
-
-				for (int i = 0; i < 2; i++)
-				{
-					for (int j = 0; j < SAMPLES_PER_PIXEL / 2; j++)
-					{
-						// For anti-aliasing
-						Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
-
-						NormalizeVec3D(&v_jitteredDirection);
-
-						AddToVec3D(&(potentialPixelColors[i]), RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
-					}
-				}
-
-				pixelColor = LowerColor(potentialPixelColors[0], potentialPixelColors[1]);
-
-				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL / 2));
-#else
 				for (int i = 0; i < SAMPLES_PER_PIXEL; i++)
 				{
 					// For anti-aliasing
@@ -270,7 +271,6 @@ private:
 				}
 
 				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
-#endif
 
 				pixelColor.x = Min(pixelColor.x, 255.0f);
 				pixelColor.y = Min(pixelColor.y, 255.0f);
@@ -282,7 +282,9 @@ private:
 
 				ScaleVec3D(&pixelColor, 255.0f);
 
-				Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
+				screenBuffer[screenY * SCREEN_WIDTH + screenX] = pixelColor;
+
+				//Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
 #if PATH_TRACING == 1
 			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
@@ -328,6 +330,66 @@ private:
 		{
 			return color2;
 		}
+	}
+
+	void MedianFiltering()
+	{
+		auto AddColorToVector = [](std::vector<Vec3D>* colors, int x, int y)
+		{
+			if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
+			{
+				colors->push_back(screenBuffer[y * SCREEN_WIDTH + x]);
+			}
+		};
+
+		auto ColorSize = [](Vec3D color)
+		{
+			return Max(color.x, Max(color.y, color.z));
+		};
+
+		auto MedianColor = [ColorSize](std::vector<Vec3D>* colors)
+		{
+			for (int i = 0; i < colors->size(); i++)
+			{
+				for (int j = 0; j < colors->size() - 1; j++)
+				{
+					if (ColorSize(colors->at(j)) > ColorSize(colors->at(j + 1)))
+					{
+						SwapVec3D(&(colors->at(j)), &(colors->at(j + 1)));
+					}
+				}
+			}
+
+			return colors->at(colors->size() / 2);
+		};
+
+		Vec3D* screenBufferCopy = new Vec3D[SCREEN_HEIGHT * SCREEN_WIDTH];
+
+		for (int y = 0; y < SCREEN_HEIGHT; y++)
+		{
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+			{
+				std::vector<Vec3D> colors;
+
+				AddColorToVector(&colors, x, y);
+				AddColorToVector(&colors, x + 1, y);
+				AddColorToVector(&colors, x - 1, y);
+				AddColorToVector(&colors, x, y + 1);
+				AddColorToVector(&colors, x, y - 1);
+
+				screenBufferCopy[y * SCREEN_WIDTH + x] = MedianColor(&colors);
+			}
+		}
+
+		for (int y = 0; y < SCREEN_HEIGHT; y++)
+		{
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+			{
+				screenBuffer[y * SCREEN_WIDTH + x] = screenBufferCopy[y * SCREEN_WIDTH + x];
+			}
+		}
+
+		delete[] screenBufferCopy;
 	}
 
 	double LINEAR_TO_SRGB(double l)
