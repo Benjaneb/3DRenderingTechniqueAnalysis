@@ -9,8 +9,9 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 1000 // for path tracing
-#define MEDIAN_FILTERING 1 // used for firefly reduction and denoising, bad for low spp
+#define SAMPLES_PER_PIXEL 100 // for path tracing
+#define GAUSSIAN_BLUR 1 // blur for denoising
+#define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
 #define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
 #define MAX_BOUNCES 15 // For distribution ray tracing
 #define SAMPLES_PER_RAY 1 // for distribution ray tracing
@@ -98,13 +99,13 @@ public:
 			// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, { 0.8, 0.8, 0.8 }, 0.05, 22.5, { 500, 500, 500 } } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 12.5, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Refractive ball
-			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.1, 0.1, 0.1 }, { 0.1, 0.1, 0.1 }, 0.1, 1.52, { 0, 0, 0 } } }
+			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.1, 1.52, { 0, 0, 0 } } }
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
 			// Basket ball
@@ -191,7 +192,11 @@ public:
 
 		StartThreads();
 
-#if MEDIAN_FILTERING == 1
+#if GAUSSIAN_BLUR == 1
+		GaussianBlur();
+#endif
+
+#if MEDIAN_FILTER == 1
 		MedianFiltering();
 #endif
 
@@ -317,22 +322,7 @@ private:
 		return v_textureColor;
 	}
 
-	Vec3D LowerColor(Vec3D color1, Vec3D color2)
-	{
-		double colorDistance1 = Max(color1.x, Max(color1.y, color1.z));
-		double colorDistance2 = Max(color2.x, Max(color2.y, color2.z));
-
-		if (colorDistance2 > colorDistance1)
-		{
-			return color1;
-		}
-		else
-		{
-			return color2;
-		}
-	}
-
-	void MedianFiltering()
+	void MedianFilter()
 	{
 		auto AddColorToVector = [](std::vector<Vec3D>* colors, int x, int y)
 		{
@@ -378,6 +368,60 @@ private:
 				AddColorToVector(&colors, x, y - 1);
 
 				screenBufferCopy[y * SCREEN_WIDTH + x] = MedianColor(&colors);
+			}
+		}
+
+		for (int y = 0; y < SCREEN_HEIGHT; y++)
+		{
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+			{
+				screenBuffer[y * SCREEN_WIDTH + x] = screenBufferCopy[y * SCREEN_WIDTH + x];
+			}
+		}
+
+		delete[] screenBufferCopy;
+	}
+
+	void GaussianBlur()
+	{
+		auto WeightedPixel = [](double weight, int x, int y)
+		{
+			Vec3D weightedPixel = ZERO_VEC3D;
+
+			if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
+			{
+				weightedPixel = VecScalarMultiplication3D(screenBuffer[y * SCREEN_WIDTH + x], weight);
+			}
+
+			return weightedPixel;
+		};
+
+#define KERNEL_SIZE 3
+
+		double gaussianKernel[KERNEL_SIZE * KERNEL_SIZE] =
+		{
+			0.0000, 0.0625, 0.0000,
+			0.0625, 0.7500, 0.0625,
+			0.0000, 0.0625, 0.0000,
+		};
+
+		Vec3D* screenBufferCopy = new Vec3D[SCREEN_HEIGHT * SCREEN_WIDTH];
+
+		for (int y = 0; y < SCREEN_HEIGHT; y++)
+		{
+			for (int x = 0; x < SCREEN_WIDTH; x++)
+			{
+				Vec3D blurredPixel = ZERO_VEC3D;
+
+				for (int i = 0; i < 3; i++)
+				{
+					for (int j = 0; j < 3; j++)
+					{
+						AddToVec3D(&blurredPixel, WeightedPixel(gaussianKernel[i * KERNEL_SIZE + j], x + j - KERNEL_SIZE / 2, y + i - KERNEL_SIZE / 2));
+					}
+				}
+
+				screenBufferCopy[y * SCREEN_WIDTH + x] = blurredPixel;
 			}
 		}
 
@@ -1011,7 +1055,7 @@ private:
 
 		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
 
-		double diffuseTerm = Chi(DotProduct3D(v_bisectorVector, v_normal)) * (1 - fresnelFactor) / PI;
+		double diffuseTerm = Chi(DotProduct3D(v_bisectorVector, v_normal)) * Square(1 - fresnelFactor) / PI;
 
 		return VecScalarMultiplication3D(v_diffuseTint, diffuseTerm);
 	}
