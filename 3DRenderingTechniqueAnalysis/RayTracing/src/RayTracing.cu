@@ -9,7 +9,8 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 100 // for path tracing
+#define SAMPLES_PER_PIXEL 50000 // for path tracing
+#define AMBIENT_LIGHT { 0.55, 0.7, 1.1 }
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
 #define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
@@ -78,7 +79,8 @@ public:
 
 	bool OnUserCreate() override
 	{
-		g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		//g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		g_player = { { 1.5, 0.5, -0.5 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
 
 		g_basketball_texture = new olc::Sprite("../Assets/basketball.png");
 		g_planks_texture = new olc::Sprite("../Assets/planks.png");
@@ -96,7 +98,9 @@ public:
 
 		g_spheres =
 		{
-			// Lightsource
+			/* FIRST BALLS */
+
+			/*// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
 			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 12.5, { 500, 500, 500 } } },
@@ -105,7 +109,14 @@ public:
 			// Other lightsource
 			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Refractive ball
-			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.1, 1.52, { 0, 0, 0 } } }
+			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, 0.05, 1.52, { 0, 0, 0 } } }*/
+
+			/* SECOND BALLS */
+
+			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
+
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 12.5, { 500, 500, 500 } } },
+
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
 			// Basket ball
@@ -118,6 +129,7 @@ public:
 			//{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0.2, 0.2, 0.95, { 1, 0, 0 }, 0.5, 1.4 } },
 			// Cyan lightsource
 			//{ { 2.4, 0.3, 1.75 }, 0.3, { 0.3, 1.15, 1.15 }, { 45, 0.2, 0.5, 0.95, { 1, 0, 0 }, 500, 1.6 } }
+			
 		};
 
 		g_triangles =
@@ -135,7 +147,7 @@ public:
 			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, { 0.3, 0.3, 0.3 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
 			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, { 0.3, 0.3, 0.3 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 
-			// Box first face															   
+			/*// Box first face															   
 			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
 			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box second face											  				     
@@ -149,7 +161,7 @@ public:
 			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
 			// Box fifth face							   				  				     
 			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },*/
 
 			// refractive pyramid
 			/*{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.25, 0.4, 0.02, 0.95, { 0, 1, 0 }, 0, 1.52 } },
@@ -902,47 +914,49 @@ private:
 		Quaternion q_nextNormal = IDENTITY_QUATERNION;
 		Material nextMaterial;
 
+		Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0f / 255);
+		Vec3D v_specularTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.specularTint), 1.0f / 255);
+
+		Vec3D weight = ZERO_VEC3D;
+
+		if (scatteringType == LAMBERTIAN)
+		{
+			weight = VecScalarMultiplication3D(BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint), 3 * PI);
+		}
+		else if (scatteringType == SPECULAR)
+		{
+			weight = VecScalarMultiplication3D(BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness, v_specularTint), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+		}
+		else
+		{
+			weight = VecScalarMultiplication3D(BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+		}
+
+		double distance = Distance3D(v_intersection, v_nextIntersection);
+
+		attenuation = { exp(-attenuation.x * distance), exp(-attenuation.y * distance), exp(-attenuation.z * distance) };
+
+		weight = ConusProduct(weight, attenuation);
+
+		accumulatedAttenuation = ConusProduct(accumulatedAttenuation, weight);
+
+		Vec3D v_incomingLightColor = AMBIENT_LIGHT;
+
 		bool intersectionExists = NextIntersection(v_intersection, v_outgoingDirection, &v_nextIntersection, &v_nextTextureColor, &q_nextNormal, &nextMaterial);
 
 		if (intersectionExists)
 		{
-			Vec3D weight = ZERO_VEC3D;
-
-			Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0f / 255);
-			Vec3D v_specularTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.specularTint), 1.0f / 255);
-
-			if (scatteringType == LAMBERTIAN)
-			{
-				weight = VecScalarMultiplication3D(BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint), 3 * PI);
-			}
-			else if (scatteringType == SPECULAR)
-			{
-				weight = VecScalarMultiplication3D(BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness, v_specularTint), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
-			}
-			else
-			{
-				weight = VecScalarMultiplication3D(BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
-			}
-
-			double distance = Distance3D(v_intersection, v_nextIntersection);
-
-			attenuation = { exp(-attenuation.x * distance), exp(-attenuation.y * distance), exp(-attenuation.z * distance) };
-
-			weight = ConusProduct(weight, attenuation);
-
-			accumulatedAttenuation = ConusProduct(accumulatedAttenuation, weight);
-
-			Vec3D v_incomingLightColor = CalculateLighting_PathTracing(
+			v_incomingLightColor = CalculateLighting_PathTracing(
 				v_nextTextureColor, nextMaterial, q_nextNormal, v_outgoingDirection, v_nextIntersection, accumulatedAttenuation, randomEngine
 			);
-
-			v_incomingLightColor = { Min(v_incomingLightColor.x, MAX_COLOR_VALUE), Min(v_incomingLightColor.y, MAX_COLOR_VALUE), Min(v_incomingLightColor.z, MAX_COLOR_VALUE) }; // Introduces bias. To avoid bias MAX_COLOR_VALUE should be very high
-
-			// Add the energy that is lost by randomly terminating paths
-			ScaleVec3D(&v_incomingLightColor, 1.0 / survivalProbability);
-
-			AddToVec3D(&v_outgoingLightColor, ConusProduct(v_incomingLightColor, weight));
 		}
+
+		v_incomingLightColor = { Min(v_incomingLightColor.x, MAX_COLOR_VALUE), Min(v_incomingLightColor.y, MAX_COLOR_VALUE), Min(v_incomingLightColor.z, MAX_COLOR_VALUE) }; // Introduces bias. To avoid bias MAX_COLOR_VALUE should be very high
+
+		// Add the energy that is lost by randomly terminating paths
+		ScaleVec3D(&v_incomingLightColor, 1.0 / survivalProbability);
+
+		AddToVec3D(&v_outgoingLightColor, ConusProduct(v_incomingLightColor, weight));
 
 		return v_outgoingLightColor;
 	}
