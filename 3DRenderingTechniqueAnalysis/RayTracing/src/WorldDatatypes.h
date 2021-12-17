@@ -8,23 +8,32 @@ struct Player
 {
 	Vec3D coords;
 	Quaternion q_orientation;
-	float FOV;
+	double FOV;
+};
+
+enum MaterialType
+{
+	DIELECTRIC,
+	METAL,
+	PLASTIC
 };
 
 struct Material
 {
 	Vec3D emittance; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
 	Vec3D diffuseTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
-	Vec3D specularTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
-	float roughness; // Measured from 0 to 1
-	float refractionIndex; // Measured from 0 to infinity
+	double specularValue; // Measured from 0 to 1
+	double roughness; // Measured from 0 to 1
+	double refractionIndex; // Measured from 0 to infinity
 	Vec3D attenuation; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
+	double extinctionCoefficient; // Only relevant for metals
+	MaterialType type;
 };
 
 struct Sphere
 {
 	Vec3D coords;
-	float radius;
+	double radius;
 	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = ZERO_VEC2D;
@@ -45,20 +54,20 @@ struct Triangle
 
 struct Ground
 {
-	float level;
+	double level;
 	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = ZERO_VEC2D;
 	Vec2D textureCorner2 = ZERO_VEC2D;
-	float textureScalar = 1;
+	double textureScalar = 1;
 	olc::Sprite* normalMap = nullptr;
 };
 
 struct Light // Only for distribution ray tracing
 {
 	Vec3D coords;
-	float radius;
-	float emittance;
+	double radius;
+	double emittance;
 	Vec3D tint;
 };
 

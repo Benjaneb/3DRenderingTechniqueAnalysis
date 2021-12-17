@@ -9,8 +9,8 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 50000 // for path tracing
-#define AMBIENT_LIGHT { 0.55, 0.7, 1.1 }
+#define SAMPLES_PER_PIXEL 600 // for path tracing
+#define AMBIENT_LIGHT { 0, 0, 0 }//{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
 #define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
@@ -103,19 +103,19 @@ public:
 			/*// Lightsource
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 12.5, { 500, 500, 500 } } },
+			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, { 0.8, 0.8, 0.8 }, 0.05, 12.5, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Other lightsource
 			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
 			// Refractive ball
-			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, 0.05, 1.52, { 0, 0, 0 } } }*/
+			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.02, 0.02, 0.02 }, { 0.4, 0.4, 0.4 }, 0.05, 1.52, { 0, 0, 0 } } }*/
 
 			/* SECOND BALLS */
 
-			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
+			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
 
-			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, { 0.9, 0.9, 0.9 }, 0.05, 12.5, { 500, 500, 500 } } },
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.4 }, 0.8, 0.05, 12.5, { 500, 500, 500 }, 0, PLASTIC } },
 
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
@@ -135,17 +135,17 @@ public:
 		g_triangles =
 		{
 			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, { 0.3, 0.2, 0.2 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, { 0.3, 0.2, 0.2 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
 			// Walls second face														   
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, { 0.2, 0.4, 0.4 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, { 0.2, 0.4, 0.4 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 			// Walls third face															   
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, { 0.4, 0.2, 0.4 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, { 0.4, 0.2, 0.4 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 			// Walls fourth face														   
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, { 0.3, 0.3, 0.3 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, { 0.3, 0.3, 0.3 }, 0.975, 1.3, { 500, 500, 500 } }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 
 			/*// Box first face															   
 			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
@@ -180,7 +180,7 @@ public:
 			{ { { 0.9 + 2, 0 + 0.01, 2.9 }, { 0.9 + 2, 0 + 0.01, 2.1 }, { 0.1 + 2, 0 + 0.01, 2.1 } }, { 0.6, 0.6, 1.5 }, { 0.3, 0.4, 0.02, 0.95, { 1, 0, 0 }, 0, 1.7 } }*/
 		};
 
-		g_ground = { 0, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.6, 2, 500 }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		g_ground = { 0, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, 0.3, 0.6, 2, { 500, 500, 500 }, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 
 		g_lights =
 		{
@@ -854,35 +854,48 @@ private:
 
 		Vec3D v_microscopicNormal;
 
-		double randNumber = uniform_zero_to_one(*randomEngine);
+		double scatteringTypeProbability;
 
-		if (randNumber < 0.33333)
+		bool isMaterialNonDielectric = material.type != DIELECTRIC;
+		bool isMaterialMetallic = material.type == METAL;
+
+#define MIN_REFLECTION_PROBABILITY 0.5
+		double reflectionProbability = Max(MIN_REFLECTION_PROBABILITY * exp(-1 / Min(material.attenuation.x, Min(material.attenuation.y, material.attenuation.z))) + MIN_REFLECTION_PROBABILITY, isMaterialMetallic);
+
+		if (uniform_zero_to_one(*randomEngine) <= reflectionProbability)
 		{
-			scatteringType = LAMBERTIAN;
+			double specularProbability = Max(0.5, isMaterialNonDielectric);
 
-			Vec3D v_tangent = ReturnNormalizedVec3D(SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart))));
-
-			Matrix3D transformationMatrix =
+			if(uniform_zero_to_one(*randomEngine) <= specularProbability)
 			{
-				v_tangent,
-				q_surfaceNormal.vecPart,
-				CrossProduct(q_surfaceNormal.vecPart, v_tangent)
-			};
+				scatteringType = SPECULAR;
 
-			double randVariable = uniform_zero_to_one(*randomEngine);
-			double theta = uniform_zero_to_one(*randomEngine) * TAU;
+				v_microscopicNormal = MicroscopicNormal(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
 
-			double r = sqrt(randVariable);
+				v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, 2 * DotProduct3D(v_incomingDirection, v_microscopicNormal)), v_incomingDirection);
+			}
+			else
+			{
+				scatteringType = LAMBERTIAN;
 
-			v_outgoingDirection = VecMatrixMultiplication3D({ r * cos(theta), sqrt(1 - randVariable), r * sin(theta) }, transformationMatrix);
-		}
-		else if (randNumber < 0.66666)
-		{
-			scatteringType = SPECULAR;
+				Vec3D v_tangent = ReturnNormalizedVec3D(SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart))));
 
-			v_microscopicNormal = MicroscopicNormal(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+				Matrix3D transformationMatrix =
+				{
+					v_tangent,
+					q_surfaceNormal.vecPart,
+					CrossProduct(q_surfaceNormal.vecPart, v_tangent)
+				};
 
-			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, 2 * DotProduct3D(v_incomingDirection, v_microscopicNormal)), v_incomingDirection);
+				double randVariable = uniform_zero_to_one(*randomEngine);
+				double theta = uniform_zero_to_one(*randomEngine) * TAU;
+
+				double r = sqrt(randVariable);
+
+				v_outgoingDirection = VecMatrixMultiplication3D({ r * cos(theta), sqrt(1 - randVariable), r * sin(theta) }, transformationMatrix);
+			}
+
+			scatteringTypeProbability = specularProbability;
 		}
 		else
 		{
@@ -897,6 +910,8 @@ private:
 			double bisectorScalar = n * incomingDotBisector - Sign(DotProduct3D(v_incomingDirection, q_surfaceNormal.vecPart)) * sqrt(Max(1 + n * (incomingDotBisector * incomingDotBisector - 1), 0));
 
 			v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, bisectorScalar), VecScalarMultiplication3D(v_incomingDirection, n));
+
+			scatteringTypeProbability = 1 - reflectionProbability;
 		}
 
 		NormalizeVec3D(&v_outgoingDirection);
@@ -915,21 +930,28 @@ private:
 		Material nextMaterial;
 
 		Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0f / 255);
-		Vec3D v_specularTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.specularTint), 1.0f / 255);
 
 		Vec3D weight = ZERO_VEC3D;
 
 		if (scatteringType == LAMBERTIAN)
 		{
-			weight = VecScalarMultiplication3D(BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint), 3 * PI);
+			weight = VecScalarMultiplication3D(BRDF_LAMBERTIAN(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, refractionIndex1, refractionIndex2, v_diffuseTint), PI / scatteringTypeProbability);
 		}
 		else if (scatteringType == SPECULAR)
 		{
-			weight = VecScalarMultiplication3D(BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness, v_specularTint), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+			weight = VecScalarMultiplication3D(
+				BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness, material.extinctionCoefficient, material.specularValue, isMaterialMetallic), 
+				Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * PI / scatteringTypeProbability
+			);
+
+			if (isMaterialNonDielectric)
+			{
+				weight = ConusProduct(weight, v_diffuseTint);
+			}
 		}
 		else
 		{
-			weight = VecScalarMultiplication3D(BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * 3 * PI);
+			weight = VecScalarMultiplication3D(BTDF(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, refractionIndex1, refractionIndex2, material.roughness), Abs(DotProduct3D(v_outgoingDirection, q_surfaceNormal.vecPart)) * PI / scatteringTypeProbability);
 		}
 
 		double distance = Distance3D(v_intersection, v_nextIntersection);
@@ -1052,22 +1074,32 @@ private:
 	}
 
 	// Cook-Torrance BRDF with GGX distribution function and GGX geometry function
-	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness, Vec3D v_specularTint)
+	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness, double extinctionCoefficient, double specularValue, bool isMaterialMetallic)
 	{
-		double fresnelFactor = Fresnel(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
+
+		double fresnelFactor;
+		
+		if (isMaterialMetallic)
+		{
+			fresnelFactor = FresnelConductor(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2, extinctionCoefficient);
+		}
+		else
+		{
+			fresnelFactor = FresnelDielectric(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
+		}
 
 		// Some terms are not included because they are cancelled out bt the PDF
 		double specularTerm = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal)) * fresnelFactor * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_microscopicNormal, roughness) /
 			(Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_microscopicNormal, v_normal)));
 
-		return VecScalarMultiplication3D(v_specularTint, specularTerm);
+		return VecScalarMultiplication3D({ specularValue, specularValue, specularValue }, specularTerm);
 	}
 
 	Vec3D BRDF_LAMBERTIAN(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, double refractionIndex1, double refractionIndex2, Vec3D v_diffuseTint)
 	{
 		Vec3D v_bisectorVector = ReturnNormalizedVec3D(Lerp3D(v_incomingDirection, v_outgoingDirection, 0.5));
 
-		double fresnelFactor = Fresnel(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
+		double fresnelFactor = FresnelDielectric(v_incomingDirection, v_bisectorVector, refractionIndex1, refractionIndex2);
 
 		double diffuseTerm = Chi(DotProduct3D(v_bisectorVector, v_normal)) * Square(1 - fresnelFactor) / PI;
 
@@ -1079,13 +1111,36 @@ private:
 		return x > 0 ? 1 : 0;
 	}
 
-	double Fresnel(Vec3D v_incomingDirection, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2)
+	double FresnelDielectric(Vec3D v_incomingDirection, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2)
 	{
 		double c = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal));
 
 		double g = sqrt(Max((refractionIndex2 * refractionIndex2) / (refractionIndex1 * refractionIndex1) - 1 + c * c, 0));
 
 		return 0.5 * Square((g - c) / (g + c)) * (1 + Square(c * (g + c) - 1) / Square(c * (g - c) + 1));
+	}
+
+	double FresnelConductor(Vec3D v_incomingDirection, Vec3D v_normal, double refractionIndex1, double refractionIndex2, double extinctionCoefficient)
+	{
+		// reference for this can be found here: https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
+
+		double eta2 = Square(refractionIndex2 / refractionIndex1);
+		double etak2 = Square(extinctionCoefficient / refractionIndex1);
+
+		double cosTheta = DotProduct3D(v_incomingDirection, v_normal);
+		double cosTheta2 = cosTheta * cosTheta;
+
+		double sinTheta2 = 1 - cosTheta2;
+		double sinTheta4 = sinTheta2 * sinTheta2;
+
+		double sumA2B2 = sqrt(Square(eta2 - etak2 - sinTheta2) + 4 * eta2 * etak2);
+
+		double a = sqrt(0.5 * (sumA2B2 + eta2 - etak2 - sinTheta2));
+
+		double sPolarizedReflection = (sumA2B2 - 2 * a * cosTheta + cosTheta2) / (sumA2B2 + 2 * a * cosTheta + cosTheta2);
+		double pPolarizedReflection = sPolarizedReflection * (cosTheta2 * sumA2B2 - 2 * a * cosTheta * sinTheta2 + sinTheta4) / (cosTheta2 * sumA2B2 + 2 * a * cosTheta * sinTheta2 + sinTheta4);
+
+		return 0.5 * (sPolarizedReflection + pPolarizedReflection);
 	}
 
 	double GeometryBidirectional(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double roughness)
@@ -1104,7 +1159,7 @@ private:
 
 	Vec3D BTDF(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness)
 	{
-		double fresnelFactor = Fresnel(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
+		double fresnelFactor = FresnelDielectric(v_incomingDirection, v_microscopicNormal, refractionIndex1, refractionIndex2);
 
 		double btdf = Abs(DotProduct3D(v_incomingDirection, v_microscopicNormal)) * (1 - fresnelFactor) * GeometryBidirectional(v_incomingDirection, v_outgoingDirection, v_normal, v_microscopicNormal, roughness) / (Abs(DotProduct3D(v_incomingDirection, v_normal)) * Abs(DotProduct3D(v_microscopicNormal, v_normal)));
 
