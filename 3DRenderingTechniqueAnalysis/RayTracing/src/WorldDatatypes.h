@@ -58,8 +58,7 @@ struct Light // Only for distribution ray tracing
 {
 	Vec3D coords;
 	float radius;
-	float emittance;
-	Vec3D tint;
+	Vec3D emittance;
 };
 
 struct Timer
