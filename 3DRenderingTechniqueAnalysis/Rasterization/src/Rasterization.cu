@@ -10,8 +10,8 @@
 
 #include "olcPixelGameEngine.h"
 
-//#include <cuda_runtime.h>
-//#include <device_launch_parameters.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 #include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
@@ -166,7 +166,7 @@ private:
 
 			// Loops until end of line or at the edge of the screen
 			for (int i = 0; i <= (int)(v2.x - v1.x) && (int)(v1.x + i) <= SCREEN_WIDTH; i++)
-				for (int j = i * lutning; j != (int)((i + 1) * lutning) + incrementY; j += incrementY)
+				for (int j = i * lutning; j != (int)((i + 1) * lutning) + incrementY && ((int)(v1.y + j) != (int)v2.y || lutning < -1); j += incrementY)
 					// Only write to buffer if coordinates are within the screen
 					if ((int)(v1.x + i) >= 0 && (int)(v1.x + i) < SCREEN_WIDTH && (int)(v1.y + j) >= 0 && (int)(v1.y + j) < SCREEN_HEIGHT)
 						g_pixels[SCREEN_WIDTH * (int)(v1.y + j) + (int)(v1.x + i)] = color;

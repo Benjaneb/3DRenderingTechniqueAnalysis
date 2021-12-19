@@ -5,11 +5,11 @@
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 1
 #define THREAD_COUNT 4
-#define SCREEN_WIDTH 900
-#define SCREEN_HEIGHT 720
-#define TOUCHING_DISTANCE 0.01f
+#define SCREEN_WIDTH 225
+#define SCREEN_HEIGHT 180
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 100 // for path tracing
+#define MOVE_DISTANCE 0.01f
+#define SAMPLES_PER_PIXEL 600 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 }//{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
@@ -184,8 +184,13 @@ public:
 
 		g_lights =
 		{
-			{ { 1.5, 3, 1.5 }, 0.5, 500, { 1, 0.8, 0.6 } }
+			{ { 1.5, 2.9, 1.5 }, 0.5, { 45, 40, 30 } },
+			// Giant light source
+			{ { 0, 0, -1005 }, 1000, { 45, 40, 30 } }
 		};
+
+		for (int i = 0; i < g_lights.size(); i++)
+			g_spheres.push_back({ g_lights[i].coords, g_lights[i].radius, { g_lights[i].emittance, ZERO_VEC3D, ZERO_VEC3D, 0, 1, { 0, 0, 0 } } });
 
 #if ASYNC == 1
 	//std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
@@ -303,7 +308,7 @@ private:
 
 				//Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
-#if PATH_TRACING == 1
+#if PATH_TRACING == 0
 			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << std::endl;
 #endif
 		}
@@ -316,7 +321,7 @@ private:
 		Quaternion q_surfaceNormal = IDENTITY_QUATERNION;
 		Material material;
 
-		bool intersectionExists = NextIntersection(v_start, v_direction, &v_intersection, &v_textureColor, &q_surfaceNormal, &material);
+		bool intersectionExists = FindIntersection(v_start, v_direction, &v_intersection, &v_textureColor, &q_surfaceNormal, &material);
 
 		if (intersectionExists)
 		{
@@ -326,7 +331,7 @@ private:
 			);
 #else
 			v_textureColor = CalculateLighting_DistributionTracing(
-				v_textureColor, material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0
+				v_textureColor, material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0, randomEngine
 			);
 #endif
 		}
@@ -983,56 +988,40 @@ private:
 		return v_outgoingLightColor;
 	}
 
-	bool NextIntersection(Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection, Vec3D* v_textureColor, Quaternion* q_normal, Material* material)
+	bool NextIntersection(Vec3D v_start, Vec3D v_direction, Vec3D* v_intersection, Vec3D* v_color, Quaternion* q_normal, Material* material)
 	{
+		// Check all spheres
 		for (int i = 0; i < g_spheres.size(); i++)
 		{
-			bool intersectionExists = SphereIntersection_RT(g_spheres[i], v_start, v_direction, v_intersection, v_textureColor, q_normal);
+			bool sphereIntersect = SphereIntersection_RT(g_spheres[i], v_start, v_direction, v_intersection, v_color, q_normal);
 
-			bool b_rayIsBlocked = false;
-
-			if (intersectionExists)
-			{
-				b_rayIsBlocked = IsRayBlocked(v_start, v_direction, *v_intersection);
-			}
-
-			if (intersectionExists && b_rayIsBlocked == false)
+			if (sphereIntersect && !IsRayBlocked(v_start, v_direction, *v_intersection))
 			{
 				*material = g_spheres[i].material;
-
 				return true;
 			}
 		}
 
+		// Check all triangles
 		for (int i = 0; i < g_triangles.size(); i++)
 		{
-			bool intersectionExists = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, v_intersection, v_textureColor, q_normal);
+			bool triangleIntersect = TriangleIntersection_RT(g_triangles[i], v_start, v_direction, v_intersection, v_color, q_normal);
 
-			bool b_rayIsBlocked = false;
-
-			if (intersectionExists)
-			{
-				b_rayIsBlocked = IsRayBlocked(v_start, v_direction, *v_intersection);
-			}
-
-			if (intersectionExists && b_rayIsBlocked == false)
+			if (triangleIntersect && !IsRayBlocked(v_start, v_direction, *v_intersection))
 			{
 				*material = g_triangles[i].material;
-
 				return true;
 			}
 		}
 
-		bool intersectionExists = GroundIntersection_RT(v_start, v_direction, v_intersection, v_textureColor, q_normal);
+		// Check ground
+		bool groundIntersect = GroundIntersection_RT(v_start, v_direction, v_intersection, v_color, q_normal);
 
-		if (intersectionExists)
+		if (groundIntersect)
 		{
 			*material = g_ground.material;
-
 			return true;
 		}
-
-		return false;
 	}
 
 	bool IsRayBlocked(Vec3D v_start, Vec3D v_direction, Vec3D v_intersection)
@@ -1073,7 +1062,7 @@ private:
 		return false;
 	}
 
-	// Cook-Torrance BRDF with GGX distribution function and GGX geometry function
+	// Cook-Torrance (cock tolerance) BRDF with GGX distribution function and GGX geometry function
 	Vec3D BRDF_COOKTORRANCE(Vec3D v_incomingDirection, Vec3D v_outgoingDirection, Vec3D v_normal, Vec3D v_microscopicNormal, double refractionIndex1, double refractionIndex2, double roughness, double extinctionCoefficient, double specularValue, bool isMaterialMetallic)
 	{
 
@@ -1190,12 +1179,66 @@ private:
 		return VecMatrixMultiplication3D(v_bisectorVector, transformationMatrix);
 	}
 
-	/*Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount)
+	Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount, std::mt19937* randomEngine)
 	{
-		Vec3D pixelColor = ZERO_VEC3D;
+		Vec3D v_pixelColor = ZERO_VEC3D;
+
+		if (i_bounceCount > MAX_BOUNCES)
+			return v_pixelColor;
 
 		// Temporary until refraction (it'll need to decide whether to offset in or out)
-		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, OFFSET_DISTANCE));
+		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, MOVE_DISTANCE));
+
+		Vec3D v_emittedColor = ConusProduct(v_objectColor, material.emittance);
+
+		// Reflections
+		Vec3D v_specularDirection = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_surfaceNormal, 2 * DotProduct3D(v_incomingDirection, v_surfaceNormal)));
+
+		Vec3D v_reflectionIntersection, v_reflectionColor, v_nextObjectColor;
+		Quaternion q_reflectionIntersectionNormal;
+		Material newMaterial;
+
+		if (material.roughness == 0)
+		{
+			// Specular reflections
+			bool b_foundIntersection = NextIntersection(v_intersection, v_specularDirection, &v_reflectionIntersection, &v_nextObjectColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+			if (b_foundIntersection)
+			{
+				v_reflectionColor = CalculateLighting_DistributionTracing(
+					v_nextObjectColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_specularDirection, v_intersection, i_bounceCount + 1, randomEngine
+				);
+			}
+		}
+		else
+		{
+			// Diffuse reflections
+			int hitCount = 1;
+
+			for (int i = 0; i < SAMPLES_PER_RAY; i++)
+			{
+				Vec3D v_lambertianDirection = ReturnNormalizedVec3D(RandomVec_InUnitSphere(randomEngine));
+				if (DotProduct3D(v_lambertianDirection, v_surfaceNormal) < 0)
+					v_lambertianDirection = VecScalarMultiplication3D(v_lambertianDirection, -1);
+
+				Vec3D v_diffuseDirection = Lerp3D(v_specularDirection, v_lambertianDirection, material.roughness);
+
+				bool b_foundIntersection = NextIntersection(v_intersection, v_diffuseDirection, &v_reflectionIntersection, &v_nextObjectColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+				if (b_foundIntersection)
+				{
+					AddToVec3D(&v_reflectionColor, CalculateLighting_DistributionTracing(
+						v_nextObjectColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_diffuseDirection, v_intersection, i_bounceCount + 1, randomEngine
+					));
+					hitCount++;
+				}
+			}
+
+			v_reflectionColor = VecScalarMultiplication3D(v_reflectionColor, 1 / hitCount);
+		}
+
+
+		Vec3D v_lightingColor = ZERO_VEC3D;
 
 		// Soft shadows
 		for (int i = 0; i < g_lights.size(); i++)
@@ -1204,12 +1247,7 @@ private:
 
 			for (int j = 0; j < SAMPLES_PER_RAY; j++)
 			{
-				float randX = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randY = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-				float randZ = float(int64_t(randEngine()) - int64_t(randEngine.max()) / 2) / float(int64_t(randEngine.max()) / 2);
-
-				Vec3D v_displacement = { randX, randY, randZ };
-				NormalizeVec3D(&v_displacement);
+				Vec3D v_displacement = ReturnNormalizedVec3D(RandomVec_InUnitSphere(randomEngine));
 				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
 				Vec3D randomPointLight = AddVec3D(g_lights[i].coords, v_displacement);
 
@@ -1222,22 +1260,46 @@ private:
 
 			double distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
 
-			//v_objectColor = VecScalarMultiplication3D(v_objectColor, material.emittance);
-			Vec3D lightColor = VecScalarMultiplication3D(g_lights[i].tint, g_lights[i].emittance);
+			Vec3D v_lightColor = VecScalarMultiplication3D(g_lights[i].emittance, notBlockedProportion / (distance * distance));
 
-			// (objectColor + lightColor) * notBlockedProportion / (distance ^ 2)
-			Vec3D v_shading = VecScalarMultiplication3D(VecScalarMultiplication3D(AddVec3D(v_objectColor, lightColor), notBlockedProportion), 1.0f / (distance * distance));
-
-			AddToVec3D(&pixelColor, v_shading);
+			AddToVec3D(&v_lightingColor, v_lightColor);
 		}
-
-		// Reflection
 
 
 		// Refraction
+		// Tangent inside of the plane defined by v_surfaceNormal and v_incomingDirection
+		Vec3D v_surfaceTangent = CrossProduct(ReturnNormalizedVec3D(CrossProduct(v_surfaceNormal, v_incomingDirection)), v_surfaceNormal);
 
-		return pixelColor;
-	}*/
+		float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
+
+		float sinRefractedAngle = Min(REFRACTION_INDEX_AIR * sinIncomingAngle / material.refractionIndex, 1.0f);
+
+		float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle); // Pythagorean identity
+
+		float cosIncomingAngle = -DotProduct3D(v_incomingDirection, v_surfaceNormal);
+
+		//bool b_foundIntersection = FindIntersection(v_intersection, v_reflectedDirecion, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
+
+		//if (b_foundIntersection)
+		//	v_reflectionColor = CalculateLighting_DistributionTracing(
+		//		v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_reflectedDirecion, v_intersection, ++i_bounceCount
+		//	);
+
+		// Fresnel for weighing reflection and refraction color
+		// Average of the s-polarized reflectance and p-polarized reflectance probabilities
+		float fresnel = (
+			Square((REFRACTION_INDEX_AIR * cosIncomingAngle - material.refractionIndex * cosRefractedAngle) / (REFRACTION_INDEX_AIR * cosIncomingAngle + material.refractionIndex * cosRefractedAngle)) +
+			Square((REFRACTION_INDEX_AIR * cosRefractedAngle - material.refractionIndex * cosIncomingAngle) / (REFRACTION_INDEX_AIR * cosRefractedAngle + material.refractionIndex * cosIncomingAngle))
+		) * 0.5f;
+
+		v_pixelColor = ConusProduct(material.diffuseTint, AddVec3D(VecScalarMultiplication3D(v_reflectionColor, fresnel), VecScalarMultiplication3D(v_objectColor, 1 - fresnel)));
+
+		v_pixelColor = ConusProduct(v_pixelColor, v_lightingColor);
+
+		AddToVec3D(&v_pixelColor, ConusProduct(v_objectColor, material.emittance));
+
+		return v_pixelColor;
+	}
 
 	Vec3D RandomVec_InUnitSphere(std::mt19937* randomEngine)
 	{
@@ -1259,7 +1321,7 @@ private:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
 		rayTracer.Start();
 	return 0;
 }

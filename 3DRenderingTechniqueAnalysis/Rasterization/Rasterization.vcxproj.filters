@@ -20,9 +20,8 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\Rasterization.cpp" />
-    <CudaCompile Include="src\Rasterization.cu">
+    <ClCompile Include="src\Rasterization.cu">
       <Filter>Source Files</Filter>
-    </CudaCompile>
+    </ClCompile>
   </ItemGroup>
 </Project>

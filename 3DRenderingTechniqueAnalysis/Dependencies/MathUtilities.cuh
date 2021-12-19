@@ -165,6 +165,11 @@ bool MaxY2D(Vec2D v1, Vec2D v2)
 // Methods for 3D vectors
 //
 
+void PrintVec3D(Vec3D v)
+{
+	std::cout << v.x << " " << v.y << " " << v.z << std::endl;
+}
+
 inline void AddToVec3D(Vec3D* v1, Vec3D v2)
 {
 	v1->x += v2.x;
