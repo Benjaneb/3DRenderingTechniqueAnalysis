@@ -1,9 +1,8 @@
 #pragma once
-#define STANDARD_MATERIAL { 0.1, 0.3, 0.4, 1, 500, 6, 1 }
 
 #include <chrono>
-#include "olcPixelGameEngine.h"
 #include "MathUtilities.cuh"
+#include "olcPixelGameEngine.h"
 
 struct Player
 {
@@ -14,20 +13,18 @@ struct Player
 
 struct Material
 {
-	float emittance; // Measured from 0 to infinity
-	float minReflectance; // Measured from 0 to 1
-	float maxReflectance; // Measured from 0 to 1
-	float reflectiveRoughness; // Measured from 0 to 1
-	float attenuation; // Measured from 0 to inf
-	float refractionIndex; // Measured from 0 to inf
-	float refractiveRoughness; // Measured from 0 to 1
+	Vec3D emittance; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
+	Vec3D diffuseTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
+	Vec3D specularTint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
+	float roughness; // Measured from 0 to 1
+	float refractionIndex; // Measured from 0 to infinity
+	Vec3D attenuation; // Measured from { 0, 0, 0 } to { infinity, infinity, infinity }
 };
 
 struct Sphere
 {
 	Vec3D coords;
 	float radius;
-	Vec3D tint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = ZERO_VEC2D;
@@ -39,7 +36,6 @@ struct Sphere
 struct Triangle
 {
 	Vec3D vertices[3];
-	Vec3D tint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	Material material;
 	std::string meshPartName = "";
 	olc::Sprite* texture = nullptr;
@@ -50,7 +46,6 @@ struct Triangle
 struct Ground
 {
 	float level;
-	Vec3D tint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	Material material;
 	olc::Sprite* texture = nullptr;
 	Vec2D textureCorner1 = ZERO_VEC2D;

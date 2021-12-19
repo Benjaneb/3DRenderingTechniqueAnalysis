@@ -1,17 +1,18 @@
 #pragma once
 #include <fstream>
+#include <mutex>
 
 // Material information about a specific part of a mesh. For example, the legs of a chair
 struct MeshPart
 {
-	Material material = STANDARD_MATERIAL;
+	Material material;
 	std::string name;
 	olc::Sprite* normalMap = nullptr;
 };
 
 std::mutex trianglesMutex;
 
-std::vector<std::string> split(const std::string& s, char delimiter)
+std::vector<std::string> Split(const std::string& s, char delimiter)
 {
 	std::vector<std::string> tokens;
 	std::string token;
@@ -28,7 +29,7 @@ std::vector<std::string> split(const std::string& s, char delimiter)
 void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* scene, std::vector<MeshPart> meshParts)
 {
 	// Use same file path for MTL-file but without the file name of the OBJ-file
-	std::vector<std::string> splitPath = split(objPath, '/');
+	std::vector<std::string> splitPath = Split(objPath, '/');
 	splitPath.pop_back();
 	std::string assetsPath;
 	for (std::string s : splitPath)
@@ -59,7 +60,7 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 		{
 			if (line != "")
 			{
-				std::vector<std::string> values = split(line, ' ');
+				std::vector<std::string> values = Split(line, ' ');
 
 				if (values[0] == "Ka") // Tint
 				{
@@ -97,7 +98,6 @@ void ParseMTL(std::string objPath, std::string mtlName, std::vector<Triangle>* s
 		{
 			if (scene->at(i).meshPartName == meshPartName)
 			{
-				scene->at(i).tint = tint;
 				scene->at(i).texture = texture;
 				scene->at(i).material = meshPart.material;
 				scene->at(i).normalMap = meshPart.normalMap;
@@ -134,7 +134,7 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 	{
 		if (line != "")
 		{
-			std::vector<std::string> values = split(line, ' ');
+			std::vector<std::string> values = Split(line, ' ');
 
 			if (values[0] == "v") // Vertex
 			{
@@ -150,10 +150,10 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 			}*/
 			else if (values[0] == "f") // Indicies of vertex info
 			{
-				std::vector<std::string> values = split(line, ' ');
-				std::vector<std::string> vertex1 = split(values[1], '/');
-				std::vector<std::string> vertex2 = split(values[2], '/');
-				std::vector<std::string> vertex3 = split(values[3], '/');
+				std::vector<std::string> values = Split(line, ' ');
+				std::vector<std::string> vertex1 = Split(values[1], '/');
+				std::vector<std::string> vertex2 = Split(values[2], '/');
+				std::vector<std::string> vertex3 = Split(values[3], '/');
 				
 				// Add new triangle with vertex and texture coordinates
 #ifdef RAY_TRACER
@@ -166,8 +166,7 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
 						}, // Vertices
-						{ 1, 1, 1 }, // tint
-						STANDARD_MATERIAL, // Material data
+						{ { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.975, 1.1, { 500, 500, 500 } }, // Material data
 						meshPartName,
 					});
 				else
@@ -178,8 +177,7 @@ void ImportScene(std::vector<Triangle>* triangles, std::string filePath, std::ve
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex2[0]) - 1], scale), v_displacement) },
 							{ AddVec3D(VecScalarMultiplication3D(vertices[stof(vertex3[0]) - 1], scale), v_displacement) }
 						}, // Vertices
-						{ 1, 1, 1 }, // tint
-						STANDARD_MATERIAL, // Material data
+						{ { 0, 0, 0 }, { 1, 1, 1 }, { 1, 1, 1 }, 0.975, 1.1, { 500, 500, 500 } }, // Material data
 						meshPartName,
 						nullptr, // Texture, set to nullptr for now
 						{ { textureCoords[stof(vertex1[1]) - 1] }, { textureCoords[stof(vertex2[1]) - 1] }, { textureCoords[stof(vertex3[1]) - 1] } }, // Texture vertices
