@@ -16,11 +16,9 @@ struct Player
 struct Triangle
 {
 	Vec3D vertices[3];
-	Vec3D tint; // Measured from { 0, 0, 0 } to { 1, 1, 1 }
 	std::string meshPartName = "";
 	olc::Sprite* texture = nullptr;
 	Vec2D textureVertices[3] = { ZERO_VEC2D, ZERO_VEC2D, ZERO_VEC2D };
-	olc::Sprite* normalMap = nullptr;
 };
 
 struct Timer

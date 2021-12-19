@@ -1,7 +1,7 @@
 #define OLC_PGE_APPLICATION
 #define RASTERIZER
 
-#define SCREEN_WIDTH 1280
+#define SCREEN_WIDTH 1080
 #define SCREEN_HEIGHT 720
 
 #include <iostream>
@@ -9,6 +9,9 @@
 #include <algorithm>
 
 #include "olcPixelGameEngine.h"
+
+//#include <cuda_runtime.h>
+//#include <device_launch_parameters.h>
 
 #include "MathUtilities.cuh"
 #include "WorldDatatypes.h"
@@ -63,23 +66,23 @@ public:
 		g_triangles =
 		{
 			// Box back face
-			{ { { 0, 1, 4 }, { 1, 2, 4 }, { 0, 2, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 0, 1, 4 }, { 1, 1, 4 }, { 1, 2, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			{ { { 0, 1, 4 }, { 1, 2, 4 }, { 0, 2, 4 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 1, 4 }, { 1, 1, 4 }, { 1, 2, 4 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box front face
-			{ { { 0, 1, 3 }, { 0, 2, 3 }, { 1, 2, 3 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 0, 1, 3 }, { 1, 2, 3 }, { 1, 1, 3 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			{ { { 0, 1, 3 }, { 0, 2, 3 }, { 1, 2, 3 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 1, 3 }, { 1, 2, 3 }, { 1, 1, 3 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box left face
-			{ { { 0, 1, 3 }, { 0, 2, 4 }, { 0, 2, 3 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 0, 1, 3 }, { 0, 1, 4 }, { 0, 2, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box right face							   
-			{ { { 1, 1, 3 }, { 1, 2, 3 }, { 1, 2, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 3 }, { 1, 2, 4 }, { 1, 1, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
+			{ { { 0, 1, 3 }, { 0, 2, 4 }, { 0, 2, 3 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 1, 3 }, { 0, 1, 4 }, { 0, 2, 4 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			// Box right face							
+			{ { { 1, 1, 3 }, { 1, 2, 3 }, { 1, 2, 4 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 1, 1, 3 }, { 1, 2, 4 }, { 1, 1, 4 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Box top face							   
-			{ { { 0, 2, 3 }, { 0, 2, 4 }, { 1, 2, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 0, 2, 3 }, { 1, 2, 4 }, { 1, 2, 3 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box bottom face							   
-			{ { { 0, 1, 3 }, { 0, 1, 4 }, { 1, 1, 4 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 0, 1, 3 }, { 1, 1, 4 }, { 1, 1, 3 } }, { 1, 1, 1 }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap }
+			{ { { 0, 2, 3 }, { 0, 2, 4 }, { 1, 2, 4 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 2, 3 }, { 1, 2, 4 }, { 1, 2, 3 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			// Box bottom face							
+			{ { { 0, 1, 3 }, { 0, 1, 4 }, { 1, 1, 4 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 1, 3 }, { 1, 1, 4 }, { 1, 1, 3 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } }
 		};
 
 		return true;

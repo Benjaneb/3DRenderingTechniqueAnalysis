@@ -9,7 +9,7 @@
 #define SCREEN_HEIGHT 720
 #define TOUCHING_DISTANCE 0.01f
 #define OFFSET_DISTANCE 0.00001f
-#define SAMPLES_PER_PIXEL 600 // for path tracing
+#define SAMPLES_PER_PIXEL 100 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 }//{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
@@ -115,7 +115,7 @@ public:
 
 			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
 
-			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.4 }, 0.8, 0.05, 12.5, { 500, 500, 500 }, 0, PLASTIC } },
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.843, 0.7176, 0.251 }, 0.8, 0.1, 0.277, { 500, 500, 500 }, 2.92, METAL } },
 
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
