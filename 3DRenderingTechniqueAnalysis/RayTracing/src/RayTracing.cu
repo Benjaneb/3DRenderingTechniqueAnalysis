@@ -1,21 +1,22 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define PATH_TRACING 1
+#define PATH_TRACING 0 // 0: distribution tracing, 1: path tracing
 
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 1
 #define THREAD_COUNT 4
-#define SCREEN_WIDTH 225
-#define SCREEN_HEIGHT 180
+#define SCREEN_WIDTH 450
+#define SCREEN_HEIGHT 360
 #define OFFSET_DISTANCE 0.00001f
 #define MOVE_DISTANCE 0.01f
-#define SAMPLES_PER_PIXEL 600 // for path tracing
+#define SAMPLES_PER_PIXEL 1 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 }//{ 27.5, 35, 55 } // sky light basically
-#define GAUSSIAN_BLUR 1 // blur for denoising
+#define GAUSSIAN_BLUR 0 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
+#define REFLECTIONS 1 // ON or OFF
 #define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
-#define MAX_BOUNCES 15 // For distribution ray tracing
-#define SAMPLES_PER_RAY 1 // for distribution ray tracing
+#define MAX_BOUNCES 2 // For distribution ray tracing
+#define SAMPLES_PER_RAY 5 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
 #define REFRACTION_INDEX_AIR 1
 
@@ -79,8 +80,8 @@ public:
 
 	bool OnUserCreate() override
 	{
-		//g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
-		g_player = { { 1.5, 0.5, -0.5 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		//g_player = { { 1.5, 0.5, -0.5 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
 
 		g_basketball_texture = new olc::Sprite("../Assets/basketball.png");
 		g_planks_texture = new olc::Sprite("../Assets/planks.png");
@@ -113,9 +114,10 @@ public:
 
 			/* SECOND BALLS */
 
-			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
+			//{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
 
-			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.4 }, 0.8, 0.05, 12.5, { 500, 500, 500 }, 0, PLASTIC } },
+			//{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.4 }, 0.8, 0.05, 12.5, { 500, 500, 500 }, 0, PLASTIC } },
+			//{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.843, 0.7176, 0.251 }, 0.8, 0.01, 10, { 500, 500, 500 }, 2.92, DIELECTRIC } },
 
 			// Other Refractive ball
 			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
@@ -134,34 +136,50 @@ public:
 
 		g_triangles =
 		{
-			// Walls first face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
-			// Walls second face														   
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls third face															   
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
-			// Walls fourth face														   
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+			// Walls north face
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } },     g_bricks_normalmap*/ },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } },     g_bricks_normalmap*/ },
+			// Walls west face														   													  
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.2, 0.1 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.9, 0.2, 0.1 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
+			// Walls east face
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.1, 0.9, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.1, 0.9, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
+			// Walls ceiling
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
 
-			/*// Box first face															   
-			{ { { 1, 0, 2 }, { 2, 1, 2 }, { 1, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 2 }, { 2, 0, 2 }, { 2, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box second face											  				     
-			{ { { 1, 0, 1 }, { 1, 1, 1 }, { 2, 1, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 2, 1, 1 }, { 2, 0, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box third face											 				    
-			{ { { 1, 0, 1 }, { 1, 1, 2 }, { 1, 1, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 0, 1 }, { 1, 0, 2 }, { 1, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fourth face							   				  				     
-			{ { { 2, 0, 1 }, { 2, 1, 1 }, { 2, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 2, 0, 1 }, { 2, 1, 2 }, { 2, 0, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },
-			// Box fifth face							   				  				     
-			{ { { 1, 1, 1 }, { 1, 1, 2 }, { 2, 1, 2 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_planks_normalmap },
-			{ { { 1, 1, 1 }, { 2, 1, 2 }, { 2, 1, 1 } }, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.4, 0.4, 0.4 }, 0.9, 1.7, { 500, 500, 500 } }, "", g_planks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_planks_normalmap },*/
+			// Tall box north face
+			{ { { 0.5, 0, 2.5 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 0.5, 0, 2.5 }, { 0.5, 1.58, 2.5 }, { 1.25, 1.58, 2.75 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Tall box south face
+			{ { { 0.75, 0, 1.75 }, { 1.5, 1.58, 2 }, { 1.5, 0, 2 } },					{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 0.75, 0, 1.75 }, { 0.75, 1.58, 1.75 }, { 1.5, 1.58, 2 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Tall box west face
+			{ { { 0.5, 0, 2.5 }, { 0.75, 1.58, 1.75 }, { 0.75, 0, 1.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 0.5, 0, 2.5 }, { 0.5, 1.58, 2.5 }, { 0.75, 1.58, 1.75 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Tall box east face
+			{ { { 1.5, 0, 2 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 1.5, 0, 2 }, { 1.5, 1.58, 2 }, { 1.25, 1.58, 2.75 } }, 				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Tall box top face
+			{ { { 0.75, 1.58, 1.75 }, { 1.25, 1.58, 2.75 }, { 1.5, 1.58, 2 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 0.75, 1.58, 1.75 }, { 0.5, 1.58, 2.5 }, { 1.25, 1.58, 2.75 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+
+			// Box north face															   
+			{ { { 1.625, 0, 1.5 }, { 2.375, 0.79, 1.25 }, { 2.375, 0, 1.25 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 1.625, 0, 1.5 }, { 1.625, 0.79, 1.5 }, { 2.375, 0.79, 1.25 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Box south face
+			{ { { 1.375, 0, 0.75 }, { 2.125, 0.79, 0.5 }, { 2.125, 0, 0.5 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 1.375, 0, 0.75 }, { 1.375, 0.79, 0.75 }, { 2.125, 0.79, 0.5 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Box west face
+			{ { { 1.625, 0, 1.5 }, { 1.375, 0.79, 0.75 }, { 1.375, 0, 0.75 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 1.625, 0, 1.5 }, { 1.625, 0.79, 1.5 }, { 1.375, 0.79, 0.75 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Box east face
+			{ { { 2.375, 0, 1.25 }, { 2.125, 0.79, 0.5 }, { 2.125, 0, 0.5 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 2.375, 0, 1.25 }, { 2.375, 0.79, 1.25 }, { 2.125, 0.79, 0.5 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			// Box top face
+			{ { { 1.375, 0.79, 0.75 }, { 2.375, 0.79, 1.25 }, { 2.125, 0.79, 0.5 } },	{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { { 1.375, 0.79, 0.75 }, { 1.625, 0.79, 1.5 }, { 2.375, 0.79, 1.25 } },	{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 
 			// refractive pyramid
 			/*{ { { 0.9, 0 + 0.01, 2.9 - 0.7 }, { 0.5, 1.4 + 0.01, 2.5 - 0.7 }, { 0.1, 0 + 0.01, 2.9 - 0.7 } }, { 1, 1, 1 }, { 0.25, 0.4, 0.02, 0.95, { 0, 1, 0 }, 0, 1.52 } },
@@ -180,17 +198,21 @@ public:
 			{ { { 0.9 + 2, 0 + 0.01, 2.9 }, { 0.9 + 2, 0 + 0.01, 2.1 }, { 0.1 + 2, 0 + 0.01, 2.1 } }, { 0.6, 0.6, 1.5 }, { 0.3, 0.4, 0.02, 0.95, { 1, 0, 0 }, 0, 1.7 } }*/
 		};
 
-		g_ground = { 0, { { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, 0.3, 0.6, 2, { 500, 500, 500 }, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		g_ground = { 0, { { 0, 0, 0 }, { 1, 1, 1 }, 0.3, 0.6, 2, { 500, 500, 500 }, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 
+#if PATH_TRACING == 0
 		g_lights =
 		{
-			{ { 1.5, 2.9, 1.5 }, 0.5, { 45, 40, 30 } },
-			// Giant light source
-			{ { 0, 0, -1005 }, 1000, { 45, 40, 30 } }
+			//{ { 1.5, 2.7, 1.5 }, 0.3, { 45, 40, 30 } },
+			{ { 1.5, 2.7, 1.5 }, 0.3, { 30, 26.67, 20 } },
+			//{ { 1.5, 2.7, 1.5 }, 0.3, { 39.3, 45.3, 20 } },
+			//{ { 0, 0, -1005 }, 1000, { 45, 40, 30 } } // Giant light source
 		};
 
+		// Insert all light sources into sphere list to make them visible
 		for (int i = 0; i < g_lights.size(); i++)
-			g_spheres.push_back({ g_lights[i].coords, g_lights[i].radius, { g_lights[i].emittance, ZERO_VEC3D, ZERO_VEC3D, 0, 1, { 0, 0, 0 } } });
+			g_spheres.push_back({ g_lights[i].coords, g_lights[i].radius - 0.1, { g_lights[i].emittance, ZERO_VEC3D, 0, 0, 1, { 0, 0, 0 } } });
+#endif
 
 #if ASYNC == 1
 	//std::async(std::launch::async, ImportScene, &g_triangles, "../Assets/RubberDuck.obj", 0.4, Vec3D({ 0.8, 0.5, 0.5 }));
@@ -284,12 +306,17 @@ private:
 
 				for (int i = 0; i < SAMPLES_PER_PIXEL; i++)
 				{
+#if PATH_TRACING == 1
 					// For anti-aliasing
 					Vec3D v_jitteredDirection = AddVec3D(v_orientedDirection, RandomVec_InUnitSphere(&randomEngine));
-
 					NormalizeVec3D(&v_jitteredDirection);
 
 					AddToVec3D(&pixelColor, RenderPixel(g_player.coords, v_jitteredDirection, &randomEngine));
+#else
+					NormalizeVec3D(&v_orientedDirection);
+
+					AddToVec3D(&pixelColor, RenderPixel(g_player.coords, v_orientedDirection, &randomEngine));
+#endif
 				}
 
 				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
@@ -1208,11 +1235,12 @@ private:
 		Vec3D v_emittedColor = ConusProduct(v_objectColor, material.emittance);
 
 		// Reflections
-		Vec3D v_specularDirection = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_surfaceNormal, 2 * DotProduct3D(v_incomingDirection, v_surfaceNormal)));
-
 		Vec3D v_reflectionIntersection, v_reflectionColor, v_nextObjectColor;
 		Quaternion q_reflectionIntersectionNormal;
 		Material newMaterial;
+
+#if REFLECTIONS == 1
+		Vec3D v_specularDirection = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_surfaceNormal, 2 * DotProduct3D(v_incomingDirection, v_surfaceNormal)));
 
 		if (material.roughness == 0)
 		{
@@ -1252,14 +1280,14 @@ private:
 
 			v_reflectionColor = VecScalarMultiplication3D(v_reflectionColor, 1 / hitCount);
 		}
-
+#endif
 
 		Vec3D v_lightingColor = ZERO_VEC3D;
 
 		// Soft shadows
 		for (int i = 0; i < g_lights.size(); i++)
 		{
-			double notBlockedProportion = 0;
+			float notBlockedProportion = 0;
 
 			for (int j = 0; j < SAMPLES_PER_RAY; j++)
 			{
@@ -1274,25 +1302,33 @@ private:
 
 			notBlockedProportion /= SAMPLES_PER_RAY;
 
-			double distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
+			Vec3D v_lightColor;
 
-			Vec3D v_lightColor = VecScalarMultiplication3D(g_lights[i].emittance, notBlockedProportion / (distance * distance));
+			if (notBlockedProportion != 0)
+			{
+				float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
 
+				v_lightColor = VecScalarMultiplication3D(g_lights[i].emittance, notBlockedProportion / (distance * distance));
+			}
+			else
+				v_lightColor = { 0.10, 0.13, 0.20 };
+				//v_lightColor = { 0, 0, 0 };
+			
 			AddToVec3D(&v_lightingColor, v_lightColor);
 		}
 
 
 		// Refraction
 		// Tangent inside of the plane defined by v_surfaceNormal and v_incomingDirection
-		Vec3D v_surfaceTangent = CrossProduct(ReturnNormalizedVec3D(CrossProduct(v_surfaceNormal, v_incomingDirection)), v_surfaceNormal);
+		//Vec3D v_surfaceTangent = CrossProduct(ReturnNormalizedVec3D(CrossProduct(v_surfaceNormal, v_incomingDirection)), v_surfaceNormal);
 
-		float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
+		//float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
 
-		float sinRefractedAngle = Min(REFRACTION_INDEX_AIR * sinIncomingAngle / material.refractionIndex, 1.0f);
+		//float sinRefractedAngle = Min(REFRACTION_INDEX_AIR * sinIncomingAngle / material.refractionIndex, 1.0f);
 
-		float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle); // Pythagorean identity
+		//float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle); // Pythagorean identity
 
-		float cosIncomingAngle = -DotProduct3D(v_incomingDirection, v_surfaceNormal);
+		float cosIncomingAngle = Clamp(-DotProduct3D(v_incomingDirection, v_surfaceNormal), 0, 1);
 
 		//bool b_foundIntersection = FindIntersection(v_intersection, v_reflectedDirecion, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
 
@@ -1301,19 +1337,16 @@ private:
 		//		v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_reflectedDirecion, v_intersection, ++i_bounceCount
 		//	);
 
-		// Fresnel for weighing reflection and refraction color
-		// Average of the s-polarized reflectance and p-polarized reflectance probabilities
-		float fresnel = (
-			Square((REFRACTION_INDEX_AIR * cosIncomingAngle - material.refractionIndex * cosRefractedAngle) / (REFRACTION_INDEX_AIR * cosIncomingAngle + material.refractionIndex * cosRefractedAngle)) +
-			Square((REFRACTION_INDEX_AIR * cosRefractedAngle - material.refractionIndex * cosIncomingAngle) / (REFRACTION_INDEX_AIR * cosRefractedAngle + material.refractionIndex * cosIncomingAngle))
-		) * 0.5f;
+		// Schlick's approximation
+		float r0 = Square((REFRACTION_INDEX_AIR - material.refractionIndex) / (REFRACTION_INDEX_AIR + material.refractionIndex));
+		float fresnel = r0 + (1 - r0) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle);
 
 		v_pixelColor = ConusProduct(material.diffuseTint, AddVec3D(VecScalarMultiplication3D(v_reflectionColor, fresnel), VecScalarMultiplication3D(v_objectColor, 1 - fresnel)));
 
 		v_pixelColor = ConusProduct(v_pixelColor, v_lightingColor);
 
 		AddToVec3D(&v_pixelColor, ConusProduct(v_objectColor, material.emittance));
-
+		
 		return v_pixelColor;
 	}
 
@@ -1373,7 +1406,7 @@ private:
 int main()
 {
 	Engine rayTracer;
-	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 2, 2))
+	if (rayTracer.Construct(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1))
 		rayTracer.Start();
 	return 0;
 }
