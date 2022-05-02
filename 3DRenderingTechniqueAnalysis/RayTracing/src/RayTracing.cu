@@ -8,7 +8,7 @@
 #define SCREEN_WIDTH 900
 #define SCREEN_HEIGHT 720
 #define OFFSET_DISTANCE 0.0001
-#define MOVE_DISTANCE 0.01f
+#define MOVE_DISTANCE 0.01
 #define SAMPLES_PER_PIXEL 1000 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 } //{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
