@@ -1223,7 +1223,7 @@ private:
 
 			if (VecLength3D(lightSource.material.emittance) == 0)
 			{
-				break; // no emittance
+				continue; // no emittance
 			}
 
 			Vec3D averageDirectLight = ZERO_VEC3D; // average for a given lightsource
