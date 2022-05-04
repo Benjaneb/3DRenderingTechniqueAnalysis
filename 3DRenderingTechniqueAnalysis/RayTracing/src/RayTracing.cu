@@ -1,6 +1,6 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define PATH_TRACING 0 // 0: distribution tracing, 1: path tracing
+#define PATH_TRACING 1 // 0: distribution tracing, 1: path tracing
 
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 1
@@ -8,17 +8,15 @@
 #define SCREEN_WIDTH 900
 #define SCREEN_HEIGHT 720
 #define OFFSET_DISTANCE 0.0001
-#define MOVE_DISTANCE 0.01
-#define SAMPLES_PER_PIXEL 1000 // for path tracing
+#define SAMPLES_PER_PIXEL 200 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 } //{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
-#define REFLECTIONS 1 // ON or OFF
 #define MAX_COLOR_VALUE 1000000 // used for reducing fireflies, introduces bias
 #define MAX_BOUNCES 2 // For distribution ray tracing
-#define SAMPLES_PER_RAY 5 // for distribution ray tracing
+#define SAMPLES_PER_BOUNCE 10 // for distribution ray tracing
 #define WHITE_COLOR { 255, 255, 255 }
-#define REFRACTION_INDEX_AIR 1
+#define REFRACTION_INDEX_AIR 1.0
 
 #include <iostream>
 #include <random>
@@ -41,7 +39,6 @@ Player g_player;
 
 std::vector<Sphere> g_spheres;
 std::vector<Triangle> g_triangles;
-std::vector<Light> g_lights;
 
 Ground g_ground;
 
@@ -80,8 +77,8 @@ public:
 
 	bool OnUserCreate() override
 	{
-		g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
-		//g_player = { { 1.5, 0.5, -0.5 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		//g_player = { { 1.5, 1.5, -2.064 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
+		g_player = { { 1.5, 0.5, -0.5 }, { 1, ZERO_VEC3D }, TAU * 0.2f };
 
 		g_basketball_texture = new olc::Sprite("../Assets/basketball.png");
 		g_planks_texture = new olc::Sprite("../Assets/planks.png");
@@ -97,65 +94,71 @@ public:
 		g_worldmap_normalmap = new olc::Sprite("../Assets/tiledfloor_normalmap.png");
 		g_bricks_normalmap = new olc::Sprite("../Assets/bricks_normalmap.png");
 
+
+#if PATH_TRACING == 1
 		g_spheres =
 		{
-			/* FIRST BALLS */
+			/* PATH TRACING BALLS */
 
-			/*// Lightsource
-			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, { 0.9, 0.7, 0.1 }, 0.6, 1.6, { 500, 500, 500 } } },
-			// Glossy ball
-			{ { 1.5, 1.4, 1.5 }, 0.4, { { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, { 0.8, 0.8, 0.8 }, 0.05, 12.5, { 500, 500, 500 } } },
-			// Other lightsource
-			{ { 0.6, 0.3, 0.85 }, 0.3, { { 30, 5, 10 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
-			// Other lightsource
-			{ { 1.9, 0.3, 0.5 }, 0.3, { { 2.25, 13.1, 18.7 }, { 0.9, 0.2, 0.4 }, { 0.9, 0.2, 0.4 }, 0.6, 1.6, { 500, 500, 500 } } },
-			// Refractive ball
-			{ { 2.5, 0.5, 2.2 }, 0.5, { { 0, 0, 0 }, { 0.02, 0.02, 0.02 }, { 0.4, 0.4, 0.4 }, 0.05, 1.52, { 0, 0, 0 } } }*/
-
-			/* SECOND BALLS */
-
-			//{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
 
 			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0, 0, 0 }, 0.8, 0.002, 1.04, { 0, 1, 0.666 }, 0, DIELECTRIC } }, // old IOR = 1.04
-			//{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.4 }, 0.8, 0.05, 12.5, { 500, 500, 500 }, 0, PLASTIC } },
-			//{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.843, 0.7176, 0.251 }, 0.8, 0.01, 10, { 500, 500, 500 }, 2.92, DIELECTRIC } },
 
 			{ { 0.5, 0.45, 2.1 }, 0.45, { { 0, 0, 0 }, { 1.0, 0.851246, 0.301305 }, 0.8, 0.1, 0.277, { 500, 500, 500 }, 2.92, METAL } },
 
 			{ { 2.5, 0.45, 2.1 }, 0.45, { { 0, 0, 0 }, { 0.31627, 0.95295, 0.56719 }, 0.85, 0.1, 3, { 500, 500, 500 }, 0, PLASTIC } },
-
-			// Other Refractive ball
-			//{ { 1.5, 2.3, 0.3 }, 0.5, { { 0, 0, 0 }, { 0.2, 0.2, 0.2 }, { 0.2, 0.2, 0.2 }, 0.3, 1.52, { 0, 0, 0 } } }
-			// Basket ball
-			//{ { 2.5, 0.5, 0.8 }, 0.5, { 1, 1, 1 }, { 0.2, 0.6, 0.8, 0.9, { -1, 0, 0 }, 500, 2 }, g_basketball_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ 1, 0, 1 }), PI / 2) },
-			// World atlas globe
-			//{ { 1.75, 0.3, 0.5 }, 0.3, { 1, 1, 1 }, { 0.35, 0.7, 0.7, 0.9, { 1, 0, 0 }, 500, 1.45 }, g_worldmap_texture, { 0, 0 }, { 1, 1 }, CreateRotationQuaternion(ReturnNormalizedVec3D({ -1, 0.5, -2 }), PI / 2) },
-			// Magenta lightsource
-			//{ { 0.5, 0.4, 0.8 }, 0.4, { 1, 0.2, 0.4157 }, { 35, 0.2, 0.5, 0.95, { -1, 0, 0 }, 500, 1.6 } },
-			// Refractive ball
-			//{ { 1.1, 0.3, 0.4 }, 0.3, { 1, 1, 1 }, { 0.2, 0.2, 0.2, 0.95, { 1, 0, 0 }, 0.5, 1.4 } },
-			// Cyan lightsource
-			//{ { 2.4, 0.3, 1.75 }, 0.3, { 0.3, 1.15, 1.15 }, { 45, 0.2, 0.5, 0.95, { 1, 0, 0 }, 500, 1.6 } }
-			
 		};
 
 		g_triangles =
 		{
+			/* PATH TRACING WALLS */
+
 			// Walls north face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } },     g_bricks_normalmap*/ },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } },     g_bricks_normalmap*/ },
-			// Walls west face														   													  
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.2, 0.1 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.9, 0.2, 0.1 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_bricks_normalmap },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.3, 0.2, 0.2 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_bricks_normalmap },
+			// Walls west face
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.2, 0.4, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 			// Walls east face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.1, 0.9, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.1, 0.9, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.4, 0.2, 0.4 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
 			// Walls ceiling
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap*/ },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.9, 0.9, 0.9 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }/*, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap*/ },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } }, g_concrete_normalmap },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.3, 0.3, 0.3 }, 0.2, 0.975, 1.3, { 500, 500, 500 }, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } }, g_concrete_normalmap },
+		};
+
+		/* PATH TRACING FLOORS */
+
+		g_ground = { 0, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 0.45, 0.6, 2, { 500, 500, 500 }, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+#else
+		g_spheres =
+		{
+			/* DISTRIBUTION TRACING BALLS */
+
+			{ { 1.5, 3, 1.5 }, 0.7, { { 45*15, 40*15, 30*15 }, { 0, 0, 0 }, 0, 0, 0, ZERO_VEC3D, 0, DIELECTRIC } },
+
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.5 }, 1.0, 0.02, 15.0, ZERO_VEC3D, 0, DIELECTRIC } },
+		};
+
+		g_triangles =
+		{
+			/* DISTRIBUTION TRACING WALLS */
+
+			// Walls north face
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.4, 0.4 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.6, 0.4, 0.4 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			// Walls west face														   													  
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.4, 0.8, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.4, 0.8, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			// Walls east face
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.8, 0.4, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.8, 0.4, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			// Walls ceiling
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Tall box north face
-			{ { { 0.5, 0, 2.5 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
+			/*{ { { 0.5, 0, 2.5 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 			{ { { 0.5, 0, 2.5 }, { 0.5, 1.58, 2.5 }, { 1.25, 1.58, 2.75 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 			// Tall box south face
 			{ { { 0.75, 0, 1.75 }, { 1.5, 1.58, 2 }, { 1.5, 0, 2 } },					{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
@@ -170,7 +173,7 @@ public:
 			{ { { 0.75, 1.58, 1.75 }, { 1.25, 1.58, 2.75 }, { 1.5, 1.58, 2 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 			{ { { 0.75, 1.58, 1.75 }, { 0.5, 1.58, 2.5 }, { 1.25, 1.58, 2.75 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 
-			// Box north face															   
+			// Box north face
 			{ { { 1.625, 0, 1.5 }, { 2.375, 0.79, 1.25 }, { 2.375, 0, 1.25 } },			{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 			{ { { 1.625, 0, 1.5 }, { 1.625, 0.79, 1.5 }, { 2.375, 0.79, 1.25 } },		{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
 			// Box south face
@@ -203,20 +206,9 @@ public:
 			{ { { 0.9 + 2, 0 + 0.01, 2.9 }, { 0.9 + 2, 0 + 0.01, 2.1 }, { 0.1 + 2, 0 + 0.01, 2.1 } }, { 0.6, 0.6, 1.5 }, { 0.3, 0.4, 0.02, 0.95, { 1, 0, 0 }, 0, 1.7 } }*/
 		};
 
-		g_ground = { 0, { { 0, 0, 0 }, { 1, 1, 1 }, 0.3, 0.6, 2, { 500, 500, 500 }, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		/* DISTRIBUTION TRACING FLOOR*/
 
-#if PATH_TRACING == 0
-		g_lights =
-		{
-			//{ { 1.5, 2.7, 1.5 }, 0.3, { 45, 40, 30 } },
-			{ { 1.5, 2.7, 1.5 }, 0.3, { 30, 26.67, 20 } },
-			//{ { 1.5, 2.7, 1.5 }, 0.3, { 39.3, 45.3, 20 } },
-			//{ { 0, 0, -1005 }, 1000, { 45, 40, 30 } } // Giant light source
-		};
-
-		// Insert all light sources into sphere list to make them visible
-		for (int i = 0; i < g_lights.size(); i++)
-			g_spheres.push_back({ g_lights[i].coords, g_lights[i].radius - 0.1, { g_lights[i].emittance, ZERO_VEC3D, 0, 0, 1, { 0, 0, 0 } } });
+		g_ground = { 0, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 #endif
 
 #if ASYNC == 1
@@ -337,12 +329,9 @@ private:
 				ScaleVec3D(&pixelColor, 255.0f);
 
 				screenBuffer[screenY * SCREEN_WIDTH + screenX] = pixelColor;
-
-				//Draw(screenX, screenY, { uint8_t(pixelColor.x), uint8_t(pixelColor.y), uint8_t(pixelColor.z) });
 			}
-#if PATH_TRACING == 1
+
 			std::cout << ((y + SCREEN_HEIGHT * 0.5f) / SCREEN_HEIGHT) * 100 << "%" << '\n';
-#endif
 		}
 	}
 
@@ -363,7 +352,7 @@ private:
 			);
 #else
 			v_textureColor = CalculateLighting_DistributionTracing(
-				v_textureColor, material, q_surfaceNormal.vecPart, v_direction, v_intersection, 0, randomEngine
+				v_textureColor, material, q_surfaceNormal, v_direction, v_intersection, 0, randomEngine
 			);
 #endif
 		}
@@ -879,7 +868,6 @@ private:
 		{
 			refractionIndex1 = material.refractionIndex;
 			refractionIndex2 = REFRACTION_INDEX_AIR;
-			v_outgoingLightColor = ZERO_VEC3D;
 		}
 
 		ScaleVec3D(&v_incomingDirection, -1);
@@ -1218,132 +1206,97 @@ private:
 		return VecMatrixMultiplication3D(v_bisectorVector, transformationMatrix);
 	}
 
-	Vec3D CalculateLighting_DistributionTracing(Vec3D v_objectColor, Material material, Vec3D v_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int i_bounceCount, std::mt19937* randomEngine)
+	Vec3D CalculateLighting_DistributionTracing(Vec3D v_textureColor, Material material, Quaternion q_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, int bounceCount, std::mt19937* randomEngine)
 	{
-		Vec3D v_pixelColor = ZERO_VEC3D;
+		Vec3D albedoColor = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0 / 255);
 
-		if (i_bounceCount > MAX_BOUNCES)
-			return v_pixelColor;
+		// offset the direction vector to avoid self-collision
+		AddToVec3D(&v_intersection, VecScalarMultiplication3D(q_surfaceNormal.vecPart, OFFSET_DISTANCE));
 
-		// Temporary until refraction (it'll need to decide whether to offset in or out)
-		AddToVec3D(&v_intersection, VecScalarMultiplication3D(v_surfaceNormal, MOVE_DISTANCE));
 
-		Vec3D v_emittedColor = ConusProduct(v_objectColor, material.emittance);
+		Vec3D directLight = ZERO_VEC3D; // all the direct light
 
-		// Reflections
-		Vec3D v_reflectionIntersection, v_reflectionColor, v_nextObjectColor;
-		Quaternion q_reflectionIntersectionNormal;
-		Material newMaterial;
-
-#if REFLECTIONS == 1
-		Vec3D v_specularDirection = SubtractVec3D(v_incomingDirection, VecScalarMultiplication3D(v_surfaceNormal, 2 * DotProduct3D(v_incomingDirection, v_surfaceNormal)));
-
-		if (material.roughness == 0)
+		// calculating direct light
+		for (int i = 0; i < g_spheres.size(); ++i)
 		{
-			// Specular reflections
-			bool b_foundIntersection = NextIntersection(v_intersection, v_specularDirection, &v_reflectionIntersection, &v_nextObjectColor, &q_reflectionIntersectionNormal, &newMaterial);
+			Sphere lightSource = g_spheres[i];
 
-			if (b_foundIntersection)
+			if (VecLength3D(lightSource.material.emittance) == 0)
 			{
-				v_reflectionColor = CalculateLighting_DistributionTracing(
-					v_nextObjectColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_specularDirection, v_intersection, i_bounceCount + 1, randomEngine
-				);
+				break; // no emittance
 			}
-		}
-		else
-		{
-			// Diffuse reflections
-			int hitCount = 1;
 
-			for (int i = 0; i < SAMPLES_PER_RAY; i++)
+			Vec3D averageDirectLight = ZERO_VEC3D; // average for a given lightsource
+
+			for (int j = 0; j < SAMPLES_PER_BOUNCE; ++j)
 			{
-				Vec3D v_lambertianDirection = ReturnNormalizedVec3D(RandomVec_InUnitSphere(randomEngine));
-				if (DotProduct3D(v_lambertianDirection, v_surfaceNormal) < 0)
-					v_lambertianDirection = VecScalarMultiplication3D(v_lambertianDirection, -1);
+				Vec3D directionToLight = SubtractVec3D(lightSource.coords, v_intersection);
+				NormalizeVec3D(&directionToLight);
 
-				Vec3D v_diffuseDirection = Lerp3D(v_specularDirection, v_lambertianDirection, material.roughness);
+				AddToVec3D(&directionToLight, VecScalarMultiplication3D(RandomVec_InUnitSphere(randomEngine), lightSource.radius));
+				NormalizeVec3D(&directionToLight); // renormalize
 
-				bool b_foundIntersection = NextIntersection(v_intersection, v_diffuseDirection, &v_reflectionIntersection, &v_nextObjectColor, &q_reflectionIntersectionNormal, &newMaterial);
+				double distance = Distance3D(v_intersection, lightSource.coords) - lightSource.radius;
 
-				if (b_foundIntersection)
+				Vec3D v_lightIntersection;
+				bool intersectionExists = SphereIntersection_RT(lightSource, v_intersection, directionToLight, &v_lightIntersection);
+				bool rayIsBlocked = IsRayBlocked(v_intersection, directionToLight, v_lightIntersection);
+
+				if (intersectionExists && !rayIsBlocked)
 				{
-					AddToVec3D(&v_reflectionColor, CalculateLighting_DistributionTracing(
-						v_nextObjectColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_diffuseDirection, v_intersection, i_bounceCount + 1, randomEngine
-					));
-					hitCount++;
+					AddToVec3D(&averageDirectLight, VecScalarMultiplication3D(lightSource.material.emittance, 1.0 / (distance * distance + 1)));
 				}
 			}
 
-			v_reflectionColor = VecScalarMultiplication3D(v_reflectionColor, 1 / hitCount);
+			ScaleVec3D(&averageDirectLight, 1.0 / SAMPLES_PER_BOUNCE);
+
+			AddToVec3D(&directLight, averageDirectLight);
 		}
-#endif
 
-		Vec3D v_lightingColor = ZERO_VEC3D;
+		Vec3D v_outgoingLightColor = AddVec3D(ConusProduct(albedoColor, directLight), material.emittance);
 
-		// Soft shadows
-		for (int i = 0; i < g_lights.size(); i++)
+
+		if (bounceCount >= MAX_BOUNCES)
 		{
-			double notBlockedProportion = 0;
-
-			for (int j = 0; j < SAMPLES_PER_RAY; j++)
-			{
-				Vec3D v_displacement = ReturnNormalizedVec3D(RandomVec_InUnitSphere(randomEngine));
-				v_displacement = VecScalarMultiplication3D(v_displacement, g_lights[i].radius);
-				Vec3D randomPointLight = AddVec3D(g_lights[i].coords, v_displacement);
-
-				Vec3D v_newDirection = ReturnNormalizedVec3D(SubtractVec3D(randomPointLight, v_intersection));
-
-				notBlockedProportion += !IsRayBlocked(v_intersection, v_newDirection, g_lights[i].coords);
-			}
-
-			notBlockedProportion /= SAMPLES_PER_RAY;
-
-			Vec3D v_lightColor;
-
-			if (notBlockedProportion != 0)
-			{
-				float distance = Distance3D(v_intersection, g_lights[i].coords) - g_lights[i].radius;
-
-				v_lightColor = VecScalarMultiplication3D(g_lights[i].emittance, notBlockedProportion / (distance * distance));
-			}
-			else
-				v_lightColor = { 0.10, 0.13, 0.20 };
-				//v_lightColor = { 0, 0, 0 };
-			
-			AddToVec3D(&v_lightingColor, v_lightColor);
+			return v_outgoingLightColor; // return if the ray has bounced too many times
 		}
 
 
-		// Refraction
-		// Tangent inside of the plane defined by v_surfaceNormal and v_incomingDirection
-		//Vec3D v_surfaceTangent = CrossProduct(ReturnNormalizedVec3D(CrossProduct(v_surfaceNormal, v_incomingDirection)), v_surfaceNormal);
+		Vec3D averageReflectedLight = ZERO_VEC3D;
 
-		//float sinIncomingAngle = DotProduct3D(v_incomingDirection, v_surfaceTangent);
+		ScaleVec3D(&v_incomingDirection, -1); // should be pointing away from the object due to convention
 
-		//float sinRefractedAngle = Min(REFRACTION_INDEX_AIR * sinIncomingAngle / material.refractionIndex, 1.0f);
+		// Calculating reflections
+		for (int i = 0; i < SAMPLES_PER_BOUNCE; ++i)
+		{
+			Vec3D v_microscopicNormal = MicroscopicNormal(v_incomingDirection, q_surfaceNormal.vecPart, material.roughness, randomEngine);
+			Vec3D v_outgoingDirection = SubtractVec3D(VecScalarMultiplication3D(v_microscopicNormal, 2 * DotProduct3D(v_incomingDirection, v_microscopicNormal)), v_incomingDirection);
 
-		//float cosRefractedAngle = sqrt(1 - sinRefractedAngle * sinRefractedAngle); // Pythagorean identity
+			AddToVec3D(&v_outgoingDirection, VecScalarMultiplication3D(RandomVec_InUnitSphere(randomEngine), material.roughness));
+			NormalizeVec3D(&v_outgoingDirection);
 
-		float cosIncomingAngle = Clamp(-DotProduct3D(v_incomingDirection, v_surfaceNormal), 0, 1);
+			Vec3D v_nextIntersection = ZERO_VEC3D;
+			Vec3D v_nextTextureColor = ZERO_VEC3D;
+			Quaternion q_nextNormal = IDENTITY_QUATERNION;
+			Material nextMaterial;
 
-		//bool b_foundIntersection = FindIntersection(v_intersection, v_reflectedDirecion, &v_reflectionIntersection, &v_reflectionColor, &q_reflectionIntersectionNormal, &newMaterial);
+			bool intersectionExists = NextIntersection(v_intersection, v_outgoingDirection, &v_nextIntersection, &v_nextTextureColor, &q_nextNormal, &nextMaterial);
 
-		//if (b_foundIntersection)
-		//	v_reflectionColor = CalculateLighting_DistributionTracing(
-		//		v_reflectionColor, newMaterial, q_reflectionIntersectionNormal.vecPart, v_reflectedDirecion, v_intersection, ++i_bounceCount
-		//	);
+			if (intersectionExists)
+			{
+				Vec3D reflectedColor = CalculateLighting_DistributionTracing(v_nextTextureColor, nextMaterial, q_nextNormal, v_outgoingDirection, v_nextIntersection, bounceCount + 1, randomEngine);
 
-		// Schlick's approximation
-		float r0 = Square((REFRACTION_INDEX_AIR - material.refractionIndex) / (REFRACTION_INDEX_AIR + material.refractionIndex));
-		float fresnel = r0 + (1 - r0) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle) * (1 - cosIncomingAngle);
+				Vec3D brdf = BRDF_COOKTORRANCE(v_incomingDirection, v_outgoingDirection, q_surfaceNormal.vecPart, v_microscopicNormal, REFRACTION_INDEX_AIR, material.refractionIndex, material.roughness, 0, material.specularValue, false);
 
-		v_pixelColor = ConusProduct(material.diffuseTint, AddVec3D(VecScalarMultiplication3D(v_reflectionColor, fresnel), VecScalarMultiplication3D(v_objectColor, 1 - fresnel)));
+				AddToVec3D(&averageReflectedLight, ConusProduct(reflectedColor, brdf));
+			}
+		}
 
-		v_pixelColor = ConusProduct(v_pixelColor, v_lightingColor);
+		ScaleVec3D(&averageReflectedLight, 1.0 / SAMPLES_PER_BOUNCE);
 
-		AddToVec3D(&v_pixelColor, ConusProduct(v_objectColor, material.emittance));
+		v_outgoingLightColor = AddVec3D(v_outgoingLightColor, ConusProduct(averageReflectedLight, albedoColor)); // add reflected color * albedo to outgoing light
 		
-		return v_pixelColor;
+		return v_outgoingLightColor;
 	}
 
 	Vec3D RandomVec_InUnitSphere(std::mt19937* randomEngine)
@@ -1380,3 +1333,5 @@ int main()
 }
 
 #include "Controlls.h"
+
+// LEET
