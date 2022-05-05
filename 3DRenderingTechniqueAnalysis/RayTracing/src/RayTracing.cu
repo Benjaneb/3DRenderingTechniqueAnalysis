@@ -1,6 +1,6 @@
 #define OLC_PGE_APPLICATION
 #define RAY_TRACER
-#define PATH_TRACING 1 // 0: distribution tracing, 1: path tracing
+#define PATH_TRACING 0 // 0: distribution tracing, 1: path tracing
 
 // Startup settings (cannot be changed during runtime)
 #define ASYNC 1
@@ -8,7 +8,7 @@
 #define SCREEN_WIDTH 900
 #define SCREEN_HEIGHT 720
 #define OFFSET_DISTANCE 0.0001
-#define SAMPLES_PER_PIXEL 200 // for path tracing
+#define SAMPLES_PER_PIXEL 1 // for path tracing
 #define AMBIENT_LIGHT { 0, 0, 0 } //{ 27.5, 35, 55 } // sky light basically
 #define GAUSSIAN_BLUR 1 // blur for denoising
 #define MEDIAN_FILTER 0 // used for firefly reduction and denoising, bad for low spp
@@ -135,9 +135,9 @@ public:
 		{
 			/* DISTRIBUTION TRACING BALLS */
 
-			{ { 1.5, 3, 1.5 }, 0.7, { { 45*15, 40*15, 30*15 }, { 0, 0, 0 }, 0, 0, 0, ZERO_VEC3D, 0, DIELECTRIC } },
+			{ { 1.5, 3, 1.5 }, 0.7, { { 45*75, 40*75, 30*75 }, { 0.9, 0.7, 0.5 }, 0.5, 0.6, 1.6, ZERO_VEC3D, 0, DIELECTRIC } },
 
-			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0.8, 0.2, 0.5 }, 1.0, 0.02, 15.0, ZERO_VEC3D, 0, DIELECTRIC } },
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 1.0, 0.25, 0.625 }, 0.9, 0.02, 3.0, ZERO_VEC3D, 0, DIELECTRIC } },
 		};
 
 		g_triangles =
@@ -145,17 +145,17 @@ public:
 			/* DISTRIBUTION TRACING WALLS */
 
 			// Walls north face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.4, 0.4 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.6, 0.4, 0.4 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls west face														   													  
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.4, 0.8, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.4, 0.8, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls east face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 0.8, 0.4, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 0.8, 0.4, 0.8 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls ceiling
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Tall box north face
 			/*{ { { 0.5, 0, 2.5 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
@@ -208,7 +208,7 @@ public:
 
 		/* DISTRIBUTION TRACING FLOOR*/
 
-		g_ground = { 0, { { 0, 0, 0 }, { 0.6, 0.6, 0.6 }, 1.0, 0.9, 15.0, ZERO_VEC3D, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		g_ground = { 0, { { 0, 0, 0 }, { 1.0, 1.0, 1.0 }, 0.9, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 #endif
 
 #if ASYNC == 1
@@ -1236,15 +1236,17 @@ private:
 				AddToVec3D(&directionToLight, VecScalarMultiplication3D(RandomVec_InUnitSphere(randomEngine), lightSource.radius));
 				NormalizeVec3D(&directionToLight); // renormalize
 
-				double distance = Distance3D(v_intersection, lightSource.coords) - lightSource.radius;
+				double distanceToCenter = Distance3D(v_intersection, lightSource.coords);
 
 				Vec3D v_lightIntersection;
 				bool intersectionExists = SphereIntersection_RT(lightSource, v_intersection, directionToLight, &v_lightIntersection);
 				bool rayIsBlocked = IsRayBlocked(v_intersection, directionToLight, v_lightIntersection);
 
+				double reciprocalPDF = 2.0 * atan2(lightSource.radius, distanceToCenter) / PI; // reciprocal of PDF for light source sampling
+
 				if (intersectionExists && !rayIsBlocked)
 				{
-					AddToVec3D(&averageDirectLight, VecScalarMultiplication3D(lightSource.material.emittance, 1.0 / (distance * distance + 1)));
+					AddToVec3D(&averageDirectLight, VecScalarMultiplication3D(ConusProduct(lightSource.material.emittance, lightSource.material.diffuseTint), reciprocalPDF)); // doesn't work if the light source has a texture
 				}
 			}
 
@@ -1253,7 +1255,7 @@ private:
 			AddToVec3D(&directLight, averageDirectLight);
 		}
 
-		Vec3D v_outgoingLightColor = AddVec3D(ConusProduct(albedoColor, directLight), material.emittance);
+		Vec3D v_outgoingLightColor = AddVec3D(ConusProduct(directLight, albedoColor), ConusProduct(material.emittance, albedoColor)); // add direct light and emitted light
 
 
 		if (bounceCount >= MAX_BOUNCES)
