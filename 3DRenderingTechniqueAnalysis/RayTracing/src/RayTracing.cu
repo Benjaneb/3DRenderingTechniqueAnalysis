@@ -100,7 +100,7 @@ public:
 		{
 			/* PATH TRACING BALLS */
 
-			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 0.9, 0.7, 0.1 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
+			{ { 1.5, 3, 1.5 }, 0.5, { { 45, 40, 30 }, { 1.0, 1.0, 1.0 }, 0.5, 0.6, 1.6, { 500, 500, 500 }, 0, DIELECTRIC } },
 
 			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 0, 0, 0 }, 0.8, 0.002, 1.04, { 0, 1, 0.666 }, 0, DIELECTRIC } }, // old IOR = 1.04
 
@@ -135,9 +135,9 @@ public:
 		{
 			/* DISTRIBUTION TRACING BALLS */
 
-			{ { 1.5, 3, 1.5 }, 0.7, { { 45*75, 40*75, 30*75 }, { 0.9, 0.7, 0.5 }, 0.5, 0.6, 1.6, ZERO_VEC3D, 0, DIELECTRIC } },
+			{ { 1.5, 3, 1.5 }, 0.7, { { 45, 40, 30 }, { 0.9, 0.7, 0.5 }, 0.5, 0.6, 1.6, ZERO_VEC3D, 0, DIELECTRIC } },
 
-			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 1.0, 0.25, 0.625 }, 0.9, 0.02, 3.0, ZERO_VEC3D, 0, DIELECTRIC } },
+			{ { 1.5, 0.7, 1.5 }, 0.7, { { 0, 0, 0 }, { 1.0, 0.25, 0.625 }, 0.8, 0.02, 3.0, ZERO_VEC3D, 0, DIELECTRIC } },
 		};
 
 		g_triangles =
@@ -145,17 +145,17 @@ public:
 			/* DISTRIBUTION TRACING WALLS */
 
 			// Walls north face
-			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 0, 3 }, { 0, 3, 3 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 3 }, { 3, 3, 3 }, { 3, 0, 3 } }, { { 0, 0, 0 }, { 0.75, 0.5, 0.5 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_bricks_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls west face														   													  
-			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 0 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 0, 0 }, { 0, 3, 3 }, { 0, 0, 3 } }, { { 0, 0, 0 }, { 0.5, 1.0, 1.0 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls east face
-			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 3 }, { 3, 3, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 3, 0, 3 }, { 3, 3, 0 }, { 3, 0, 0 } }, { { 0, 0, 0 }, { 1.0, 0.5, 1.0 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 			// Walls ceiling
-			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
-			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 3 }, { 0, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 0, 0 }, { 1, 0 } } },
+			{ { { 0, 3, 0 }, { 3, 3, 0 }, { 3, 3, 3 } }, { { 0, 0, 0 }, { 0.75, 0.75, 0.75 }, 0.5, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, "", g_concrete_texture, { { 0, 1 }, { 1, 0 }, { 1, 1 } } },
 
 			// Tall box north face
 			/*{ { { 0.5, 0, 2.5 }, { 1.25, 1.58, 2.75 }, { 1.25, 0, 2.75 } },				{ { 0, 0, 0 }, { 0.8, 0.8, 0.8 }, 0.4, 0.9, 1.7, { 500, 500, 500 }, 0, DIELECTRIC } },
@@ -208,7 +208,7 @@ public:
 
 		/* DISTRIBUTION TRACING FLOOR*/
 
-		g_ground = { 0, { { 0, 0, 0 }, { 1.0, 1.0, 1.0 }, 0.9, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
+		g_ground = { 0, { { 0, 0, 0 }, { 1.0, 1.0, 1.0 }, 0.7, 0.7, 3.0, ZERO_VEC3D, 0, DIELECTRIC }, g_tiledfloor_texture, { 0, 0 }, { 1, 1 }, 1, g_tiledfloor_normalmap };
 #endif
 
 #if ASYNC == 1
@@ -286,18 +286,18 @@ private:
 
 	void RayTracing(int startX, int endX, std::mt19937 randomEngine)
 	{
-		const double zFar = (SCREEN_WIDTH * 0.5f) / tan(g_player.FOV * 0.5f);
+		const double zFar = (SCREEN_WIDTH * 0.5) / tan(g_player.FOV * 0.5);
 
-		for (double y = -SCREEN_HEIGHT * 0.5f + 0.5f; y < SCREEN_HEIGHT * 0.5f + 0.5f; y++)
+		for (double y = -SCREEN_HEIGHT * 0.5 + 0.5; y < SCREEN_HEIGHT * 0.5 + 0.5; y++)
 		{
-			for (double x = -SCREEN_WIDTH * 0.5f + 0.5f + startX; x < -SCREEN_WIDTH * 0.5f + 0.5f + endX; x++)
+			for (double x = -SCREEN_WIDTH * 0.5 + 0.5 + startX; x < -SCREEN_WIDTH * 0.5 + 0.5 + endX; x++)
 			{
 				Vec3D v_direction = { x, y, zFar };
 
 				Vec3D v_orientedDirection = QuaternionMultiplication(g_player.q_orientation, { 0, v_direction }, QuaternionConjugate(g_player.q_orientation)).vecPart;
 
-				int screenX = x + SCREEN_WIDTH * 0.5f;
-				int screenY = SCREEN_HEIGHT - (y + SCREEN_HEIGHT * 0.5f);
+				int screenX = x + SCREEN_WIDTH * 0.5;
+				int screenY = SCREEN_HEIGHT - (y + SCREEN_HEIGHT * 0.5);
 
 				Vec3D pixelColor = ZERO_VEC3D;
 
@@ -318,15 +318,15 @@ private:
 
 				ScaleVec3D(&pixelColor, 1 / double(SAMPLES_PER_PIXEL));
 
-				pixelColor.x = Min(pixelColor.x, 255.0f);
-				pixelColor.y = Min(pixelColor.y, 255.0f);
-				pixelColor.z = Min(pixelColor.z, 255.0f);
+				pixelColor.x = Min(pixelColor.x, 1.0);
+				pixelColor.y = Min(pixelColor.y, 1.0);
+				pixelColor.z = Min(pixelColor.z, 1.0);
 
-				ScaleVec3D(&pixelColor, 1.0f / 255);
+				//ScaleVec3D(&pixelColor, 1.0f / 255);
 
 				pixelColor = { LINEAR_TO_SRGB(pixelColor.x), LINEAR_TO_SRGB(pixelColor.y), LINEAR_TO_SRGB(pixelColor.z) };
 
-				ScaleVec3D(&pixelColor, 255.0f);
+				ScaleVec3D(&pixelColor, 255.0);
 
 				screenBuffer[screenY * SCREEN_WIDTH + screenX] = pixelColor;
 			}
@@ -849,7 +849,9 @@ private:
 
 	Vec3D CalculateLighting_PathTracing(Vec3D v_textureColor, Material material, Quaternion q_surfaceNormal, Vec3D v_incomingDirection, Vec3D v_intersection, Vec3D accumulatedAttenuation, std::mt19937* randomEngine)
 	{
-		Vec3D v_outgoingLightColor = ConusProduct(v_textureColor, material.emittance);
+		Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0 / 255);
+
+		Vec3D v_outgoingLightColor = ConusProduct(v_diffuseTint, material.emittance);
 
 		// counterintuitive, but the probability goes up when accumulatedAttenuation goes up
 		double survivalProbability = Max(Sigmoid(2 * Max(accumulatedAttenuation.x, Max(accumulatedAttenuation.y, accumulatedAttenuation.z))), 0.1);
@@ -964,8 +966,6 @@ private:
 		Vec3D v_nextTextureColor = ZERO_VEC3D;
 		Quaternion q_nextNormal = IDENTITY_QUATERNION;
 		Material nextMaterial;
-
-		Vec3D v_diffuseTint = VecScalarMultiplication3D(ConusProduct(v_textureColor, material.diffuseTint), 1.0 / 255);
 
 		Vec3D weight = ZERO_VEC3D;
 
@@ -1242,7 +1242,8 @@ private:
 				bool intersectionExists = SphereIntersection_RT(lightSource, v_intersection, directionToLight, &v_lightIntersection);
 				bool rayIsBlocked = IsRayBlocked(v_intersection, directionToLight, v_lightIntersection);
 
-				double reciprocalPDF = 2.0 * atan2(lightSource.radius, distanceToCenter) / PI; // reciprocal of PDF for light source sampling
+				double reciprocalPDF = 1.0 - (distanceToCenter / sqrt(distanceToCenter * distanceToCenter + lightSource.radius * lightSource.radius)); // reciprocal of the light source sampling PDF
+				// calculated as 1 - cos(maximum angle between v_intersection and a point on the sphere)
 
 				if (intersectionExists && !rayIsBlocked)
 				{
